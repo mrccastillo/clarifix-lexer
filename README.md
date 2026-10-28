@@ -13,18 +13,18 @@ Open the **PPL folder** in VS Code, then select **Terminal > New Terminal**. A C
 
 Wait for the `Built` message. The executable is saved in `bin/`.
 
-**PowerShell shortcut:** if you have configured the local shortcut, you can type `build`. This shortcut is specific to your computer; the commands above work directly from the project.
+**PowerShell shortcuts:** on this computer, open a new terminal and type `build` to compile or `lex sample` to analyze an example. These shortcuts are saved in your local profile; other Windows users can use the project scripts directly.
 
 ## 2. Run an example
 
 | System | Command |
 | --- | --- |
-| Windows | `.\bin\clarifix.exe examples\sample.clx` |
-| Mac / Linux | `./bin/clarifix examples/sample.clx` |
+| Windows | `.\lex.ps1 sample` |
+| Mac / Linux | `./lex sample` |
 
 Tokens and errors appear directly in the terminal. Look for `0 error(s)` in the summary for a successful analysis.
 
-To analyze another example, replace `sample.clx` with its filename. Build once, then run as many source files as you want. Rebuild after changing the C files; after editing a `.clx` file, save it and run the analyzer again.
+Pass the example name without the folder or extension: use `average` for `examples/average.clx`. Full file paths also work. To analyze another example, replace `sample` with its name. Build once, then run as many source files as you want. Rebuild after changing the C files; after editing a `.clx` file, save it and run the analyzer again.
 
 ## 3. Create your own example
 
@@ -41,8 +41,8 @@ Then run it:
 
 | System | Command |
 | --- | --- |
-| Windows | `.\bin\clarifix.exe examples\my-program.clx` |
-| Mac / Linux | `./bin/clarifix examples/my-program.clx` |
+| Windows | `.\lex.ps1 my-program` |
+| Mac / Linux | `./lex my-program` |
 
 Use straight quotes, end simple statements with a period, and use four spaces for indentation.
 
@@ -60,7 +60,7 @@ Use straight quotes, end simple statements with a period, and use four spaces fo
 For example, on Windows:
 
 ```powershell
-.\bin\clarifix.exe --braces examples\braces.clx
+.\lex.ps1 braces --braces
 ```
 
 ## Optional: save a Symbol Table report
@@ -70,14 +70,14 @@ A normal build or run does not save a report. Add `--report` when you want one, 
 Windows:
 
 ```powershell
-.\bin\clarifix.exe --report bin\sample-report.txt examples\sample.clx
+.\lex.ps1 sample --report bin\sample-report.txt
 Get-Content bin\sample-report.txt
 ```
 
 Mac / Linux:
 
 ```sh
-./bin/clarifix --report bin/sample-report.txt examples/sample.clx
+./lex sample --report bin/sample-report.txt
 cat bin/sample-report.txt
 ```
 
