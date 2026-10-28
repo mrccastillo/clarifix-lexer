@@ -1,18 +1,22 @@
 """Create a source-only release ZIP with an explicit SHA-256 manifest.
 
-Run after building and generating submission/reports.
+Run after building. Example reports are generated in a temporary directory.
 No publication or upload is performed. Output directory must be new.
 """
 import argparse
 import hashlib
+import os
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ZIP_NAME = 'clarifix-paper-alignment-2.zip'
 ROOT_FILES = ['README.md', 'SPEC-UPDATED-PAPER-ALIGNMENT.md', '.gitignore', 'Makefile',
-              'build.ps1', 'main.c', 'lexer.c', 'lexer.h']
-DIRECTORIES = ['examples', 'tests', 'tools', 'submission']
+              'build.ps1', 'main.c', 'lexer.c', 'lexer.h', 'submission/CHECKLIST.md']
+DIRECTORIES = ['examples', 'tests', 'tools']
 
 
 def payload():
@@ -28,19 +32,29 @@ def payload():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--executable', type=Path,
+                        default=ROOT / ('build/clarifix.exe' if os.name == 'nt' else 'clarifix'))
     args = parser.parse_args()
     destination = args.output.resolve()
     if destination.exists():
         parser.error('Output directory must not already exist.')
     files = payload()
-    required = [ROOT / 'submission/CHECKLIST.md']
-    required += [ROOT / f'submission/reports/{name}-symbol-table.txt'
-                 for name in ('sample', 'average', 'features', 'braces', 'errors', 'checklist')]
-    for path in files + required:
+    for path in files:
         if not path.is_file():
             parser.error(f'Required file missing: {path}')
+    if not args.executable.is_file():
+        parser.error('Build the analyzer first, or pass --executable PATH.')
     # Read before opening the destination so unexpected changes cannot create a partial manifest.
     contents = [(path.relative_to(ROOT).as_posix(), path.read_bytes()) for path in files]
+    # Reports belong in a hand-in ZIP, not in the working source tree.
+    with tempfile.TemporaryDirectory(prefix='clarifix-package-') as temporary:
+        reports = Path(temporary) / 'reports'
+        subprocess.run([sys.executable, str(ROOT / 'tools/generate_samples.py'),
+                        '--executable', str(args.executable.resolve()), '--output', str(reports)],
+                       cwd=ROOT, check=True, timeout=60)
+        contents.extend(('submission/reports/' + path.name, path.read_bytes())
+                        for path in reports.iterdir() if path.is_file())
+    contents.sort(key=lambda item: item[0])
     manifest = ''.join(f'{hashlib.sha256(data).hexdigest()}  {name}\n' for name, data in contents)
     destination.mkdir(parents=True)
     archive = destination / ZIP_NAME

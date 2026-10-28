@@ -59,7 +59,7 @@ Its report has nine source-token rows and exactly two unique symbol entries:
 | 1 | total | IDENTIFIER | - | 5 | 2:5 |
 | 2 | 10 | CONST_INT | 10 | 2 | 2:14 |
 
-Summary: identifiers 2, keywords 2, noise words 1, constants 1, delimiters 2, comments 1; no invalid tokens. See the [generated report](submission/reports/sample-symbol-table.txt).
+Summary: identifiers 2, keywords 2, noise words 1, constants 1, delimiters 2, comments 1; no invalid tokens. Generate the report with the command above; saved report copies are excluded from the source tree.
 
 ## Outputs
 
@@ -105,7 +105,7 @@ python tools\package_submission.py --output build\paper-release
 python tools\verify_submission.py build\paper-release\clarifix-paper-alignment-2.zip
 ```
 
-Use a fresh directory for packaging. The ZIP includes sources, the current specification, tests, examples, and report samples. It excludes binaries, caches, local PDF tooling, and temporary logs. Its manifest identifies every payload file. Verification rebuilds in a fresh temporary directory, runs the full suite and all six examples, and compares regenerated reports against packaged samples.
+Use a fresh directory for packaging. Build the analyzer first. The packager generates fresh reports in a temporary directory and includes them in the ZIP with sources, the current specification, tests, and examples. No saved reports are required in the repository. Binaries, caches, and temporary logs are excluded. The manifest identifies every payload file. Verification rebuilds in a fresh temporary directory, runs the full suite and all six examples, and compares regenerated reports against packaged samples.
 
 Report samples are generated with `tools/generate_samples.py` or `build.ps1 -Examples`; report, parser-token, two-column, unique-symbol, diagnostic, and JSON-summary outputs are produced together.
 

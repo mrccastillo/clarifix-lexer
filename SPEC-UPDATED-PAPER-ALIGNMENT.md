@@ -40,7 +40,7 @@ Source of truth: the updated Group 4 paper originally supplied as `Group 4 - PPL
 
 ## Documentation and publication
 
-The initial `paper-alignment-2` release includes the authoritative paper, alignment addendum, and validation records. Following the user's documentation-cleanup request, the current tree and newly generated packages exclude those documentation files and their PDF renderer. Keep source, this specification, tests, examples, and report samples. Historical release assets remain unchanged. No course hand-in or visibility change is implied.
+The initial `paper-alignment-2` release includes the authoritative paper, alignment addendum, and validation records. Following the user's cleanup requests, the current tree excludes those documentation files, the PDF renderer, and saved report copies. Keep source, this specification, tests, examples, and report-generation tooling. The packager generates fresh report samples in a temporary directory and includes them in the hand-in ZIP. Historical release assets remain unchanged. No course hand-in or visibility change is implied.
 
 ## Completion
 
