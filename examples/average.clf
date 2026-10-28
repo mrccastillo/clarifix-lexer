@@ -1,0 +1,16 @@
+# Class average calculator from the proposal.
+function average(total, count):
+    return total / count.
+set total to 0.
+set count to 0.
+ask answer "How many scores? ".
+set n = to_int(answer).
+for i in range(0, n):
+    ask entry "Enter score: ".
+    set total = total + to_decimal(entry).
+    set count = count + 1.
+if count > 0 then:
+    set avg = average(total, count).
+    show "Average: " + to_text(avg).
+else:
+    show "No scores entered.".

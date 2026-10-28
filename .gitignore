@@ -1,0 +1,9 @@
+/build/
+__pycache__/
+*.exe
+*.obj
+*.o
+/tokens.txt
+/symbol_table.txt
+/clarifix
+/dist/

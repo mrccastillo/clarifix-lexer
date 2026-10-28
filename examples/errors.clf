@@ -1,0 +1,7 @@
+# Each bad line demonstrates one lexical diagnostic.
+set 1name = 2.
+set this_identifier_is_longer_than_thirty_two_characters = 1.
+show "An unsupported escape: \q".
+set grade = 'AB'.
+show @.
+# Analysis stops after five errors; fix these before scanning further.

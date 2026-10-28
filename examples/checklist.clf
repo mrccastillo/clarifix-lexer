@@ -1,0 +1,28 @@
+# Checklist demonstration: keywords, noise words, constants, and operators.
+/* Both comment forms are retained in the submission report. */
+set the count to of 20.
+set price = 19.99.
+set grade = 'A'.
+set name = "ClariFix".
+set active = true.
+set numbers = [1, 2, 3].
+function identity(value):
+    return value.
+ask of answer "Continue? ".
+if active && count >= 1 then:
+    show the name.
+elif false || !active:
+    show "Inactive".
+else:
+    show "Other".
+while count > 0:
+    count--.
+    continue.
+for i in numbers:
+    break.
+# Lexical coverage below; expression grammar is a later phase.
++ - * / // % ^ ++ --
+&& || ! == != < > <= >=
+= += -= *= /= %= ^=
+and or not is
+(count), numbers[0].

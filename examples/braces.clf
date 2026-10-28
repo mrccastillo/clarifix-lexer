@@ -1,0 +1,11 @@
+# Run with --braces. Indentation is cosmetic.
+set score = 90.
+if (score >= 75) {
+    show "Passed".
+} else {
+    show "Failed".
+}
+set values = [
+  1, 2,
+  3
+].

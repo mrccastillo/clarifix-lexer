@@ -1,0 +1,47 @@
+[
+  {
+    "source": "examples/average.clf",
+    "braces": false,
+    "exit_status": 0,
+    "tokens": 118,
+    "symbols": 69,
+    "report_rows": 96,
+    "errors": 0
+  },
+  {
+    "source": "examples/features.clf",
+    "braces": false,
+    "exit_status": 0,
+    "tokens": 187,
+    "symbols": 69,
+    "report_rows": 157,
+    "errors": 0
+  },
+  {
+    "source": "examples/braces.clf",
+    "braces": true,
+    "exit_status": 0,
+    "tokens": 34,
+    "symbols": 59,
+    "report_rows": 34,
+    "errors": 0
+  },
+  {
+    "source": "examples/errors.clf",
+    "braces": false,
+    "exit_status": 1,
+    "tokens": 13,
+    "symbols": 58,
+    "report_rows": 8,
+    "errors": 5
+  },
+  {
+    "source": "examples/checklist.clf",
+    "braces": false,
+    "exit_status": 0,
+    "tokens": 166,
+    "symbols": 67,
+    "report_rows": 136,
+    "errors": 0
+  }
+]
