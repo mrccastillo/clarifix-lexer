@@ -7,7 +7,7 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-EXAMPLES = ('average', 'features', 'braces', 'errors', 'checklist')
+EXAMPLES = ('sample', 'average', 'features', 'braces', 'errors', 'checklist')
 
 
 def main():
@@ -23,10 +23,14 @@ def main():
     for name in EXAMPLES:
         report = destination / f'{name}-symbol-table.txt'
         tokens = destination / f'{name}-tokens.txt'
-        command = [str(args.executable.resolve()), '--report', str(report), '--tokens', str(tokens)]
+        table = destination / f'{name}-table.tsv'
+        symbols = destination / f'{name}-symbols.tsv'
+        command = [str(args.executable.resolve()), '--report', str(report), '--tokens', str(tokens),
+                   '--table', str(table), '--symbols', str(symbols)]
         if name == 'braces':
             command.append('--braces')
-        command.append(str(ROOT / f'examples/{name}.clf'))
+        extension = 'clx' if name == 'sample' else 'clf'
+        command.append(str(ROOT / f'examples/{name}.{extension}'))
         result = subprocess.run(command, capture_output=True, timeout=10)
         (destination / f'{name}-diagnostics.txt').write_bytes(result.stderr)
         expected = 1 if name == 'errors' else 0
@@ -36,14 +40,17 @@ def main():
         match = re.search(r'Lexical analysis: (\d+) token\(s\), (\d+) symbol\(s\), (\d+) error\(s\)', diagnostic)
         if not match:
             raise ValueError(f'{name}: missing summary')
-        with report.open(encoding='utf-8', newline='') as stream:
+        text = report.read_text(encoding='utf-8')
+        if not all('[' + letter + ']' in text for letter in 'ABCD'):
+            raise ValueError(f'{name}: missing report section')
+        with table.open(encoding='utf-8', newline='') as stream:
             rows = list(csv.reader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
         if rows[0] != ['TOKEN TYPE', 'LEXEME'] or not all(len(row) == 2 for row in rows):
             raise ValueError(f'{name}: invalid report format')
         token_count, symbol_count, errors = map(int, match.groups())
         if errors != (5 if name == 'errors' else 0):
             raise ValueError(f'{name}: unexpected error count')
-        summaries.append(dict(source=f'examples/{name}.clf', braces=name == 'braces',
+        summaries.append(dict(source=f'examples/{name}.{extension}', braces=name == 'braces',
                               exit_status=result.returncode, tokens=token_count,
                               symbols=symbol_count, report_rows=len(rows) - 1, errors=errors))
         print(f'{name}: exit {result.returncode}; {token_count} tokens; {len(rows) - 1} report rows; {errors} errors')

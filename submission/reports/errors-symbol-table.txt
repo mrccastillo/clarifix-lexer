@@ -1,9 +1,36 @@
-TOKEN TYPE	LEXEME
-LINE_COMMENT	# Each bad line demonstrates one lexical diagnostic.
-SET	set
-SET	set
-SHOW	show
-SET	set
-IDENTIFIER	grade
-ASSIGN	=
-SHOW	show
+======================================================================
+                        CLARIFIX SYMBOL TABLE
+======================================================================
+Source file : errors.clf
+----------------------------------------------------------------------
+
+[A] TOKEN LIST (in order of appearance)
+No.  Line  Col  Lexeme                                                Token Type      Category
+---  ----  ---  ----------------------------------------------------  --------------  ----------
+1    1     1    # Each bad line demonstrates one lexical diagnostic.  SINGLE_COMMENT  Comment
+2    2     1    set                                                   SET             Keyword
+3    3     1    set                                                   SET             Keyword
+4    4     1    show                                                  SHOW            Keyword
+5    5     1    set                                                   SET             Keyword
+6    5     5    grade                                                 IDENTIFIER      Identifier
+7    5     11   =                                                     ASSIGN          Operator
+8    6     1    show                                                  SHOW            Keyword
+
+[B] SYMBOL TABLE (unique identifiers and constants)
+ID  Lexeme  Token Type  Value  Length  First Seen
+--  ------  ----------  -----  ------  ----------
+1   grade   IDENTIFIER  -      5       5:5
+
+[C] INVALID / UNRECOGNIZED TOKENS
+Line  Col  Lexeme                                                Error  Reason
+----  ---  ----------------------------------------------------  -----  --------------------------------------------------------------
+2     5    1name                                                 E110   A name begins with a number, or a number touches a name.
+3     5    this_identifier_is_longer_than_thirty_two_characters  E104   This identifier is longer than 32 characters.
+4     30   \\q                                                   E111   The literal contains an unknown escape sequence.
+5     13   'AB'                                                  E112   A character literal does not contain exactly one character.
+6     6    @                                                     E103   This character is not recognized outside a literal or comment.
+
+[D] SUMMARY
+Identifiers: 1 | Keywords: 5 | Noise words: 0 | Constants: 0
+Delimiters: 0 | Comments: 1 | Operators: 1 | Invalid: 5 | Total tokens: 8
+======================================================================

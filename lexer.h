@@ -35,10 +35,18 @@ typedef struct {
 typedef struct {
     char *lexeme;
     CfTokenType type;
-    int fixed;
+    char *value;                 /* Decoded text or exact normalized decimal value. */
+    size_t length;              /* Unicode-scalar count of the source lexeme. */
     size_t line, column, occurrences;
-    int noise;                  /* Accepting-state action: 1=to, 2=then, 3=filler. */
+    size_t identity, next;       /* Trie terminal key; one-based collision-chain link. */
 } CfSymbol;
+
+#define CF_SYMBOL_BUCKETS 211
+typedef struct {
+    size_t offset, length, line, column;
+    int code;
+    const char *reason;
+} CfInvalid;
 
 typedef struct {
     CfToken *tokens;
@@ -47,6 +55,9 @@ typedef struct {
     size_t report_count, report_capacity;
     CfSymbol *symbols;
     size_t symbol_count, symbol_capacity;
+    size_t buckets[CF_SYMBOL_BUCKETS];
+    CfInvalid *invalid;
+    size_t invalid_count, invalid_capacity;
     size_t errors;
 } CfResult;
 
@@ -58,7 +69,8 @@ int cf_lex(const char *source, size_t length, int braces,
            FILE *diagnostics, CfResult *result);
 int cf_write_tokens(FILE *out, const char *source, const CfResult *result);
 int cf_write_symbols(FILE *out, const CfResult *result);
-int cf_write_report(FILE *out, const char *source, const CfResult *result);
+int cf_write_report(FILE *out, const char *source, const char *source_name, const CfResult *result);
+int cf_write_table(FILE *out, const char *source, const CfResult *result);
 void cf_free(CfResult *result);
 
 #endif

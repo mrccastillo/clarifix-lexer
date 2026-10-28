@@ -9,8 +9,8 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-ZIP_NAME = 'clarifix-lexer-compliance-1.zip'
-ROOT_FILES = ['README.md', 'SPEC-LEXER-COMPLIANCE.md', '.gitignore', 'Makefile',
+ZIP_NAME = 'clarifix-paper-alignment-2.zip'
+ROOT_FILES = ['README.md', 'SPEC-LEXER-COMPLIANCE.md', 'SPEC-UPDATED-PAPER-ALIGNMENT.md', '.gitignore', 'Makefile',
               'build.ps1', 'main.c', 'lexer.c', 'lexer.h']
 DIRECTORIES = ['docs', 'examples', 'tests', 'tools', 'submission']
 
@@ -33,10 +33,10 @@ def main():
     if destination.exists():
         parser.error('Output directory must not already exist.')
     files = payload()
-    required = [ROOT / 'docs/ClariFix-Revised-Proposal.pdf', ROOT / 'docs/validation.md',
+    required = [ROOT / 'docs/ClariFix-Updated-Paper.pdf', ROOT / 'docs/ClariFix-Revised-Proposal.pdf', ROOT / 'docs/validation.md',
                 ROOT / 'submission/CHECKLIST.md']
     required += [ROOT / f'submission/reports/{name}-symbol-table.txt'
-                 for name in ('average', 'features', 'braces', 'errors', 'checklist')]
+                 for name in ('sample', 'average', 'features', 'braces', 'errors', 'checklist')]
     for path in files + required:
         if not path.is_file():
             parser.error(f'Required file missing: {path}')

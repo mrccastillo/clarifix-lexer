@@ -1,0 +1,24 @@
+ID	LEXEME	TOKEN	CATEGORY	VALUE	LENGTH	FIRST_LINE	FIRST_COLUMN	OCCURRENCES
+1	count	IDENTIFIER	Identifier	-	5	3	9	5
+2	20	CONST_INT	Constant	20	2	3	21	1
+3	price	IDENTIFIER	Identifier	-	5	4	5	1
+4	19.99	CONST_DECIMAL	Constant	19.99	5	4	13	1
+5	grade	IDENTIFIER	Identifier	-	5	5	5	1
+6	'A'	CONST_CHAR	Constant	A	3	5	13	1
+7	name	IDENTIFIER	Identifier	-	4	6	5	2
+8	"ClariFix"	CONST_STRING	Constant	ClariFix	10	6	12	1
+9	active	IDENTIFIER	Identifier	-	6	7	5	3
+10	true	CONST_BOOLEAN	Constant	true	4	7	14	1
+11	numbers	IDENTIFIER	Identifier	-	7	8	5	3
+12	1	CONST_INT	Constant	1	1	8	16	2
+13	2	CONST_INT	Constant	2	1	8	19	1
+14	3	CONST_INT	Constant	3	1	8	22	1
+15	identity	IDENTIFIER	Identifier	-	8	9	10	1
+16	value	IDENTIFIER	Identifier	-	5	9	19	2
+17	answer	IDENTIFIER	Identifier	-	6	11	8	1
+18	"Continue? "	CONST_STRING	Constant	Continue? 	12	11	15	1
+19	false	CONST_BOOLEAN	Constant	false	5	14	6	1
+20	"Inactive"	CONST_STRING	Constant	Inactive	10	15	10	1
+21	"Other"	CONST_STRING	Constant	Other	7	17	10	1
+22	0	CONST_INT	Constant	0	1	18	15	2
+23	i	IDENTIFIER	Identifier	-	1	21	5	1

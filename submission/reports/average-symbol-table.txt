@@ -1,97 +1,137 @@
-TOKEN TYPE	LEXEME
-LINE_COMMENT	# Class average calculator from the proposal.
-FUNCTION	function
-IDENTIFIER	average
-LPAREN	(
-IDENTIFIER	total
-COMMA	,
-IDENTIFIER	count
-RPAREN	)
-COLON	:
-RETURN	return
-IDENTIFIER	total
-SLASH	/
-IDENTIFIER	count
-PERIOD	.
-SET	set
-IDENTIFIER	total
-NOISE_WORD	to
-INT_LITERAL	0
-PERIOD	.
-SET	set
-IDENTIFIER	count
-NOISE_WORD	to
-INT_LITERAL	0
-PERIOD	.
-ASK	ask
-IDENTIFIER	answer
-STRING_LITERAL	"How many scores? "
-PERIOD	.
-SET	set
-IDENTIFIER	n
-ASSIGN	=
-IDENTIFIER	to_int
-LPAREN	(
-IDENTIFIER	answer
-RPAREN	)
-PERIOD	.
-FOR	for
-IDENTIFIER	i
-IN	in
-IDENTIFIER	range
-LPAREN	(
-INT_LITERAL	0
-COMMA	,
-IDENTIFIER	n
-RPAREN	)
-COLON	:
-ASK	ask
-IDENTIFIER	entry
-STRING_LITERAL	"Enter score: "
-PERIOD	.
-SET	set
-IDENTIFIER	total
-ASSIGN	=
-IDENTIFIER	total
-PLUS	+
-IDENTIFIER	to_decimal
-LPAREN	(
-IDENTIFIER	entry
-RPAREN	)
-PERIOD	.
-SET	set
-IDENTIFIER	count
-ASSIGN	=
-IDENTIFIER	count
-PLUS	+
-INT_LITERAL	1
-PERIOD	.
-IF	if
-IDENTIFIER	count
-GT	>
-INT_LITERAL	0
-NOISE_WORD	then
-COLON	:
-SET	set
-IDENTIFIER	avg
-ASSIGN	=
-IDENTIFIER	average
-LPAREN	(
-IDENTIFIER	total
-COMMA	,
-IDENTIFIER	count
-RPAREN	)
-PERIOD	.
-SHOW	show
-STRING_LITERAL	"Average: "
-PLUS	+
-IDENTIFIER	to_text
-LPAREN	(
-IDENTIFIER	avg
-RPAREN	)
-PERIOD	.
-ELSE	else
-COLON	:
-SHOW	show
-STRING_LITERAL	"No scores entered."
-PERIOD	.
+======================================================================
+                        CLARIFIX SYMBOL TABLE
+======================================================================
+Source file : average.clf
+----------------------------------------------------------------------
+
+[A] TOKEN LIST (in order of appearance)
+No.  Line  Col  Lexeme                                         Token Type            Category
+---  ----  ---  ---------------------------------------------  --------------------  ----------
+1    1     1    # Class average calculator from the proposal.  SINGLE_COMMENT        Comment
+2    2     1    function                                       FUNCTION              Keyword
+3    2     10   average                                        IDENTIFIER            Identifier
+4    2     17   (                                              LPAREN                Delimiter
+5    2     18   total                                          IDENTIFIER            Identifier
+6    2     23   ,                                              COMMA                 Delimiter
+7    2     25   count                                          IDENTIFIER            Identifier
+8    2     30   )                                              RPAREN                Delimiter
+9    2     31   :                                              COLON                 Delimiter
+10   3     5    return                                         RETURN                Keyword
+11   3     12   total                                          IDENTIFIER            Identifier
+12   3     18   /                                              SLASH                 Operator
+13   3     20   count                                          IDENTIFIER            Identifier
+14   3     25   .                                              STATEMENT_TERMINATOR  Delimiter
+15   4     1    set                                            SET                   Keyword
+16   4     5    total                                          IDENTIFIER            Identifier
+17   4     11   to                                             NOISE                 Noise word
+18   4     14   0                                              CONST_INT             Constant
+19   4     15   .                                              STATEMENT_TERMINATOR  Delimiter
+20   5     1    set                                            SET                   Keyword
+21   5     5    count                                          IDENTIFIER            Identifier
+22   5     11   to                                             NOISE                 Noise word
+23   5     14   0                                              CONST_INT             Constant
+24   5     15   .                                              STATEMENT_TERMINATOR  Delimiter
+25   6     1    ask                                            ASK                   Keyword
+26   6     5    answer                                         IDENTIFIER            Identifier
+27   6     12   "How many scores? "                            CONST_STRING          Constant
+28   6     31   .                                              STATEMENT_TERMINATOR  Delimiter
+29   7     1    set                                            SET                   Keyword
+30   7     5    n                                              IDENTIFIER            Identifier
+31   7     7    =                                              ASSIGN                Operator
+32   7     9    to_int                                         IDENTIFIER            Identifier
+33   7     15   (                                              LPAREN                Delimiter
+34   7     16   answer                                         IDENTIFIER            Identifier
+35   7     22   )                                              RPAREN                Delimiter
+36   7     23   .                                              STATEMENT_TERMINATOR  Delimiter
+37   8     1    for                                            FOR                   Keyword
+38   8     5    i                                              IDENTIFIER            Identifier
+39   8     7    in                                             IN                    Keyword
+40   8     10   range                                          IDENTIFIER            Identifier
+41   8     15   (                                              LPAREN                Delimiter
+42   8     16   0                                              CONST_INT             Constant
+43   8     17   ,                                              COMMA                 Delimiter
+44   8     19   n                                              IDENTIFIER            Identifier
+45   8     20   )                                              RPAREN                Delimiter
+46   8     21   :                                              COLON                 Delimiter
+47   9     5    ask                                            ASK                   Keyword
+48   9     9    entry                                          IDENTIFIER            Identifier
+49   9     15   "Enter score: "                                CONST_STRING          Constant
+50   9     30   .                                              STATEMENT_TERMINATOR  Delimiter
+51   10    5    set                                            SET                   Keyword
+52   10    9    total                                          IDENTIFIER            Identifier
+53   10    15   =                                              ASSIGN                Operator
+54   10    17   total                                          IDENTIFIER            Identifier
+55   10    23   +                                              PLUS                  Operator
+56   10    25   to_decimal                                     IDENTIFIER            Identifier
+57   10    35   (                                              LPAREN                Delimiter
+58   10    36   entry                                          IDENTIFIER            Identifier
+59   10    41   )                                              RPAREN                Delimiter
+60   10    42   .                                              STATEMENT_TERMINATOR  Delimiter
+61   11    5    set                                            SET                   Keyword
+62   11    9    count                                          IDENTIFIER            Identifier
+63   11    15   =                                              ASSIGN                Operator
+64   11    17   count                                          IDENTIFIER            Identifier
+65   11    23   +                                              PLUS                  Operator
+66   11    25   1                                              CONST_INT             Constant
+67   11    26   .                                              STATEMENT_TERMINATOR  Delimiter
+68   12    1    if                                             IF                    Keyword
+69   12    4    count                                          IDENTIFIER            Identifier
+70   12    10   >                                              GT                    Operator
+71   12    12   0                                              CONST_INT             Constant
+72   12    14   then                                           NOISE                 Noise word
+73   12    18   :                                              COLON                 Delimiter
+74   13    5    set                                            SET                   Keyword
+75   13    9    avg                                            IDENTIFIER            Identifier
+76   13    13   =                                              ASSIGN                Operator
+77   13    15   average                                        IDENTIFIER            Identifier
+78   13    22   (                                              LPAREN                Delimiter
+79   13    23   total                                          IDENTIFIER            Identifier
+80   13    28   ,                                              COMMA                 Delimiter
+81   13    30   count                                          IDENTIFIER            Identifier
+82   13    35   )                                              RPAREN                Delimiter
+83   13    36   .                                              STATEMENT_TERMINATOR  Delimiter
+84   14    5    show                                           SHOW                  Keyword
+85   14    10   "Average: "                                    CONST_STRING          Constant
+86   14    22   +                                              PLUS                  Operator
+87   14    24   to_text                                        IDENTIFIER            Identifier
+88   14    31   (                                              LPAREN                Delimiter
+89   14    32   avg                                            IDENTIFIER            Identifier
+90   14    35   )                                              RPAREN                Delimiter
+91   14    36   .                                              STATEMENT_TERMINATOR  Delimiter
+92   15    1    else                                           ELSE                  Keyword
+93   15    5    :                                              COLON                 Delimiter
+94   16    5    show                                           SHOW                  Keyword
+95   16    10   "No scores entered."                           CONST_STRING          Constant
+96   16    30   .                                              STATEMENT_TERMINATOR  Delimiter
+
+[B] SYMBOL TABLE (unique identifiers and constants)
+ID  Lexeme                Token Type    Value                 Length  First Seen
+--  --------------------  ------------  --------------------  ------  ----------
+1   average               IDENTIFIER    -                     7       2:10
+2   total                 IDENTIFIER    -                     5       2:18
+3   count                 IDENTIFIER    -                     5       2:25
+4   0                     CONST_INT     0                     1       4:14
+5   answer                IDENTIFIER    -                     6       6:5
+6   "How many scores? "   CONST_STRING  "How many scores? "   19      6:12
+7   n                     IDENTIFIER    -                     1       7:5
+8   to_int                IDENTIFIER    -                     6       7:9
+9   i                     IDENTIFIER    -                     1       8:5
+10  range                 IDENTIFIER    -                     5       8:10
+11  entry                 IDENTIFIER    -                     5       9:9
+12  "Enter score: "       CONST_STRING  "Enter score: "       15      9:15
+13  to_decimal            IDENTIFIER    -                     10      10:25
+14  1                     CONST_INT     1                     1       11:25
+15  avg                   IDENTIFIER    -                     3       13:9
+16  "Average: "           CONST_STRING  "Average: "           11      14:10
+17  to_text               IDENTIFIER    -                     7       14:24
+18  "No scores entered."  CONST_STRING  "No scores entered."  20      16:10
+
+[C] INVALID / UNRECOGNIZED TOKENS
+Line  Col  Lexeme  Error  Reason
+----  ---  ------  -----  ------
+(none)
+
+[D] SUMMARY
+Identifiers: 28 | Keywords: 16 | Noise words: 3 | Constants: 9
+Delimiters: 30 | Comments: 1 | Operators: 9 | Invalid: 0 | Total tokens: 96
+======================================================================

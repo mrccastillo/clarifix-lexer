@@ -62,13 +62,14 @@ def main():
             else:
                 run(['make', 'test'], root)
                 executable = root / 'clarifix'
-            for name in ('average', 'features', 'braces', 'errors', 'checklist'):
+            for name in ('sample', 'average', 'features', 'braces', 'errors', 'checklist'):
                 output = root / f'build/verify-{name}.txt'
                 output.parent.mkdir(exist_ok=True)
                 command = [str(executable), '--report', str(output)]
                 if name == 'braces':
                     command.append('--braces')
-                command.append(str(root / f'examples/{name}.clf'))
+                extension = 'clx' if name == 'sample' else 'clf'
+                command.append(str(root / f'examples/{name}.{extension}'))
                 result = subprocess.run(command, capture_output=True, timeout=10)
                 expected_status = 1 if name == 'errors' else 0
                 if result.returncode != expected_status:

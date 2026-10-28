@@ -1,0 +1,9 @@
+TOKEN TYPE	LEXEME
+SINGLE_COMMENT	# Each bad line demonstrates one lexical diagnostic.
+SET	set
+SET	set
+SHOW	show
+SET	set
+IDENTIFIER	grade
+ASSIGN	=
+SHOW	show

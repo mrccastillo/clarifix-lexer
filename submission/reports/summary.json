@@ -1,10 +1,19 @@
 [
   {
+    "source": "examples/sample.clx",
+    "braces": false,
+    "exit_status": 0,
+    "tokens": 11,
+    "symbols": 2,
+    "report_rows": 9,
+    "errors": 0
+  },
+  {
     "source": "examples/average.clf",
     "braces": false,
     "exit_status": 0,
     "tokens": 118,
-    "symbols": 69,
+    "symbols": 18,
     "report_rows": 96,
     "errors": 0
   },
@@ -13,7 +22,7 @@
     "braces": false,
     "exit_status": 0,
     "tokens": 187,
-    "symbols": 69,
+    "symbols": 33,
     "report_rows": 157,
     "errors": 0
   },
@@ -22,7 +31,7 @@
     "braces": true,
     "exit_status": 0,
     "tokens": 34,
-    "symbols": 59,
+    "symbols": 9,
     "report_rows": 34,
     "errors": 0
   },
@@ -31,7 +40,7 @@
     "braces": false,
     "exit_status": 1,
     "tokens": 13,
-    "symbols": 58,
+    "symbols": 1,
     "report_rows": 8,
     "errors": 5
   },
@@ -40,7 +49,7 @@
     "braces": false,
     "exit_status": 0,
     "tokens": 166,
-    "symbols": 67,
+    "symbols": 23,
     "report_rows": 136,
     "errors": 0
   }

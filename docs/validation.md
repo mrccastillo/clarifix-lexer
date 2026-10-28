@@ -1,65 +1,63 @@
-# Validation record
+# Updated-paper alignment validation
 
-Revision label: `lexer-compliance-1`.
-Validated on 2026-10-28, Asia/Singapore, using Windows x86-64.
+Revision: `paper-alignment-2`. Date: 2026-10-28, Asia/Singapore.
+Environment: Windows x86-64; Python 3.12; WinLibs GCC 16.2.0, MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r3.
 
-## Compiler and build
-
-Desktop compiler: GCC 16.2.0, WinLibs MinGW-W64 x86_64-ucrt-posix-seh, built by Brecht Sanders, r3.
+## Build and regression suite
 
 ```powershell
-.\build.ps1 -Test -Examples -OutputDirectory build\final-example-reports
+.\build.ps1 -Test -Examples -OutputDirectory build\paper-alignment-reports
 ```
 
-The script compiled `main.c` and `lexer.c` with `-std=c11 -Wall -Wextra -Wpedantic -Werror -O2`. Compilation succeeded with no warnings. Python 3.12 ran all 29 black-box test methods successfully. The test harness retains strict UTF-8 decoding; no invalid bytes are silently discarded.
+The strict C11 build uses `-Wall -Wextra -Wpedantic -Werror -O2`. It compiled without warnings and all 38 regression test methods passed. The page-20 golden output fixture was also checked independently after adding the exact formatting expectation. No invalid UTF-8 is silently discarded by the test harness.
 
-Tests include the existing regression cases plus fixed-word prefixes/case variants and stable identifier identities, exact golden report output, unchanged parser tokens when reporting, comment/literal escaping, empty and partial reports, protected output creation, invalid-byte/control diagnostics, rendered caret positions, and complete checklist coverage.
+Coverage includes existing token/location/layout/error regressions and new checks for exact paper output, two-symbol sample inventory, collision chains, repeated/case-sensitive keys, no preloaded symbols, all constant values, Unicode scalar lengths, very large exact numeric values, invalid fragments, empty sections, recovery, protected report destinations, portable source basenames, `.clx`/`.clf`, and explicit braces mode.
 
-## Example results
+## Six example runs
 
-| Source | Mode | Exit | Parser tokens | Report rows | Internal symbols | Errors |
+| Source | Mode | Exit | Parser tokens | Source report rows | Unique symbols | Errors |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| average.clf | Indentation | 0 | 118 | 96 | 69 | 0 |
-| features.clf | Indentation | 0 | 187 | 157 | 69 | 0 |
-| braces.clf | --braces | 0 | 34 | 34 | 59 | 0 |
-| errors.clf | Indentation | 1 | 13 | 8 | 58 | 5 |
-| checklist.clf | Indentation | 0 | 166 | 136 | 67 | 0 |
+| sample.clx | Indentation | 0 | 11 | 9 | 2 | 0 |
+| average.clf | Indentation | 0 | 118 | 96 | 18 | 0 |
+| features.clf | Indentation | 0 | 187 | 157 | 33 | 0 |
+| braces.clf | --braces | 0 | 34 | 34 | 9 | 0 |
+| errors.clf | Indentation | 1 | 13 | 8 | 1 | 5 |
+| checklist.clf | Indentation | 0 | 166 | 136 | 23 | 0 |
 
-Reports contain exactly the `TOKEN TYPE` and `LEXEME` columns. Synthetic layout/EOF tokens are excluded. Comments and allowed noise words are retained in source order. Parser tokens remain separate. The internal inventory starts with 57 fixed spellings and adds identifiers.
+The sample exactly matches the updated page-20 acceptance values: symbol 1 `total`, value `-`, length 5, first seen `2:5`; symbol 2 `10`, value `10`, length 2, first seen `2:14`. Its source categories are identifiers 2, keywords 2, noise words 1, constants 1, delimiters 2, comments 1, operators 0. Section C is empty.
 
-The `errors.clf` result is intentionally partial. Its five diagnostics are E110, E104, E111, E112, and E103, in that order. Its matching diagnostic sample explicitly identifies the report as partial.
+The deliberate-error example records E110, E104, E111, E112, and E103 in section C and explicitly warns that output is partial. It does not insert malformed constants/names as successful symbols. `submission/reports/summary.json` records actual runs; source reports, parser tokens, attribute TSVs, simple tables, and diagnostics are packaged together.
 
-## Recognition and documentation review
+## Implementation review
 
-- Reviewed trie transition, construction, accepting-action, identifier identity, and operator longest-match paths. No completed-word comparisons classify source or intern names; no scanner generator or third-party lexical framework is used.
-- CLI string comparisons remain in `main.c` solely for options and the source extension.
-- `docs/lexer-automata.md` documents character states, acceptance, bounded lookahead, and the separate layout/delimiter stacks.
-- Revised proposal and README agree on the 57-entry inventory, five scalar literal types, noise normalization, default indentation and alternate braces, ASCII decrement, reports, and phase boundaries.
-- Original root-level proposal Markdown/PDF are preserved. The revised proposal is separately labeled.
+- The symbol table has 211 djb2 bucket heads and explicit one-based separate chains. Symbol key equality compares exact trie identity plus token type, not just a hash. Collisions retain distinct entries.
+- The reserved/operator array has 55 recognition spellings. Two Boolean accepting paths are separate. No vocabulary prepopulates the symbol table, which begins empty for each call.
+- Only identifiers and accepted constants enter the table. IDs follow first insertion. All declared attributes are exported, including decoded/canonical values and first location.
+- Source classification and hash-chain equality contain no `strcmp`, `strncmp`, `memcmp`, regular-expression matching, or completed-word comparison loops. CLI comparisons are outside source tokenization.
+- Numeric values use exact normalized decimal text rather than overflowing a machine integer/float. Unicode length is scalar-based; source columns remain byte-based.
+- Contradictory syntax passages are resolved explicitly in `updated-paper-decisions.md`; no original PDF was edited.
 
-## Printable proposal
+## Paper and printable addendum
 
-`docs/ClariFix-Revised-Proposal.pdf` was generated from the revised Markdown with `tools/render_proposal.py`, using ReportLab and Markdown in an isolated environment under `build/pdf-tools`. These optional tools are not needed for the C build or regression suite.
+`docs/ClariFix-Updated-Paper.pdf` is byte-identical to the user's `Group 4 - PPL Draft Proposal (1).pdf` (SHA-256 checked). `docs/ClariFix-Revised-Proposal.md` and its PDF are now the separately labeled alignment addendum, replacing the earlier implementation proposal. Optional PDF-generation tools are outside the workspace under the system temporary directory.
 
-The PDF has six A4 pages. All pages were rasterized and inspected. Text bounds lie inside printable margins, tables and code are readable, logical OR displays as two bars, and text extraction found no replacement or missing-glyph markers. No clipped table or code line was found.
+The addendum is four A4 pages. Every page was rasterized and inspected; tables/code are readable, table headers repeat across page breaks, and no clipped text or replacement glyphs were found. PDF text bounds were checked against printable margins. Range punctuation was also verified after rendering.
 
-## Release verification
+## Source-only release
 
-A source-only ZIP containing 42 payload files plus `MANIFEST.sha256` passed clean-extraction verification. Every payload hash was checked. The verifier rebuilt with the documented strict PowerShell command in a newly created temporary directory, passed all 29 tests, generated all five example reports, and confirmed byte-for-byte equality with the packaged report samples. No prebuilt executable was used.
+ZIP: `clarifix-paper-alignment-2.zip`. Target tag: `paper-alignment-2` in the existing private repository, https://github.com/mrccastillo/clarifix-lexer.
+
+The package includes the authoritative updated paper, addendum, specifications, source, examples, tests, report samples, and this evidence. It excludes local tool installations, temporary logs, binaries, caches, and the superseded original draft PDFs. Original user files remain in the workspace.
+
+Clean-extraction verification passed for all 62 payload files: every manifest hash was checked, the documented PowerShell script rebuilt the analyzer and passed all 38 tests, all six examples returned their expected statuses, and regenerated reports matched packaged samples byte-for-byte. No prebuilt executable was used.
 
 ```powershell
-python tools\package_submission.py --output build\release
-python tools\verify_submission.py build\release\clarifix-lexer-compliance-1.zip
+python tools\package_submission.py --output build\paper-release
+python tools\verify_submission.py build\paper-release\clarifix-paper-alignment-2.zip
 ```
 
-Final deliverable: `build/release/clarifix-lexer-compliance-1.zip`, with an adjacent `.zip.sha256` checksum. The internal manifest is the authoritative file-level snapshot. GitHub publication target: https://github.com/mrccastillo/clarifix-lexer (private), branch `main`, release tag `lexer-compliance-1`. The published release identifies its exact commit; its ZIP manifest is checked against the committed blobs. Course submission has not been performed.
+The release tag identifies the exact source commit. The publication check compares each manifest digest against the committed blob before uploading the ZIP, checksum, authoritative paper, and alignment addendum. The original release remains historical; no course hand-in is performed.
 
-## Remaining course actions
+## Course actions
 
-GitHub publication does not establish a calendar deadline, course hand-in destination, receipt, or physical preparation. Those remain unchecked in `submission/CHECKLIST.md`. The lexer recognizes source; it does not execute ClariFix programs. Linux/macOS instructions are supplied but were not executed in this Windows environment.
-
-## Follow-up: compiler discovery in an existing VS Code terminal
-
-After the initial release, the build script was updated to append saved Windows PATH entries when its requested compiler is missing from the terminal's inherited environment. Existing terminal-specific paths are preserved. This fixes WinLibs discovery without requiring a VS Code restart before building.
-
-Verified in a PowerShell process where `Get-Command gcc` initially returned no result: `.\build.ps1 -Test` found the installed WinLibs GCC, compiled successfully, and passed all 29 tests. `gcc --version` also worked afterward in that process. This follow-up is on `main`; the original `lexer-compliance-1` release remains its original verified snapshot.
+GitHub publication does not hand in the coursework. Confirm the calendar deadline and central submission destination, provide instructor access to the private repository, submit the ZIP/link, print the authoritative paper and alignment addendum, and prepare the index card. Linux/macOS commands are supplied but are not verified in this Windows environment. This phase recognizes source; it does not execute programs.

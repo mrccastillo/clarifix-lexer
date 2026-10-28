@@ -89,6 +89,8 @@ def main():
             cells = [[Paragraph(inline(cell), styles['Cell']) for cell in row] for row in rows]
             count = len(cells[0])
             fractions = [0.23, 0.77] if count == 2 else [0.22, 0.13, 0.65]
+            if count == 6:
+                fractions = [0.06, 0.14, 0.25, 0.15, 0.12, 0.28]
             # Syntax/example and kind/spellings/meaning tables need balanced columns.
             headers = [''.join(cell.itertext()) for cell in rows[0]]
             if count == 3 and headers[1] != 'Count':
@@ -112,13 +114,13 @@ def main():
         canvas.saveState()
         canvas.setFont(body_font, 8)
         canvas.setFillColor(colors.HexColor('#55675f'))
-        canvas.drawString(18 * mm, 12 * mm, 'ClariFix | Group 4 | Revised lexical analyzer proposal')
+        canvas.drawString(18 * mm, 12 * mm, 'ClariFix | Group 4 | Updated-paper alignment addendum')
         canvas.drawRightString(A4[0] - 18 * mm, 12 * mm, str(doc.page))
         canvas.restoreState()
 
     document = SimpleDocTemplate(str(DESTINATION), pagesize=A4, leftMargin=18 * mm,
                                  rightMargin=18 * mm, topMargin=18 * mm, bottomMargin=20 * mm,
-                                 title='ClariFix: revised lexical analyzer proposal', author='Group 4')
+                                 title='ClariFix: updated-paper alignment addendum', author='Group 4')
     document.build(story, onFirstPage=footer, onLaterPages=footer)
     print(DESTINATION)
 

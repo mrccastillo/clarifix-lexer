@@ -1,1 +1,1 @@
-Lexical analysis: 187 token(s), 69 symbol(s), 0 error(s).
+Lexical analysis: 187 token(s), 33 symbol(s), 0 error(s).

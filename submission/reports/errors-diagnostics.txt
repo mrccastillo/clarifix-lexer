@@ -34,4 +34,4 @@ Why: Names use ASCII letters, digits and underscores; operators have defined spe
 How to fix: Remove the character or place intended text inside quotes.
 
 Fix these first, then run again
-Lexical analysis: 13 token(s), 58 symbol(s), 5 error(s). Token output is partial; do not execute it. Report output is partial.
+Lexical analysis: 13 token(s), 1 symbol(s), 5 error(s). Token output is partial; do not execute it. Report output is partial.

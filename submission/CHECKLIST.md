@@ -1,26 +1,30 @@
 # Group 4 submission checklist
 
-Local release label: `lexer-compliance-1` (a release label, not a Git commit).
-ZIP filename: `clarifix-lexer-compliance-1.zip`.
-The ZIP's `MANIFEST.sha256` identifies every packaged file; the adjacent `.zip.sha256` identifies the complete archive.
+Current revision/tag: `paper-alignment-2`. ZIP: `clarifix-paper-alignment-2.zip`.
+Repository: https://github.com/mrccastillo/clarifix-lexer (private).
+The ZIP's `MANIFEST.sha256` identifies every payload file; its adjacent `.zip.sha256` identifies the complete archive. The earlier `lexer-compliance-1` release is historical.
 
 ## Local deliverables
 
-- [x] Handwritten C11 lexer using character transitions and stable trie identities.
-- [x] Two-column Symbol Table reporting with literal, comment, and noise-word occurrences.
-- [x] Example sources, regression tests, automata documentation, and revised proposal source.
-- [x] Printable revised proposal PDF generated and inspected.
-- [x] All checks recorded in `docs/validation.md` and clean ZIP verified.
+- [x] Updated-paper specification and page-by-page ambiguity decisions.
+- [x] Character automata plus djb2, 211 buckets, separate-chained symbol table.
+- [x] Unique identifiers/constants, converted values, categories, lengths, and first locations.
+- [x] Four-section report with invalid-token records and category summary.
+- [x] Page-20 sample: nine source occurrences, exactly two symbols (`total`, `10`).
+- [x] All 38 tests and six example runs pass.
+- [x] Updated paper copied unchanged and alignment addendum generated.
+- [x] Printable addendum rendered and inspected.
+- [x] Final ZIP rebuilt from a clean extraction and report samples verified.
+- [x] Updated source and matching release assets published under `paper-alignment-2`.
 
 ## Course hand-in
 
-- [x] GitHub repository URL: https://github.com/mrccastillo/clarifix-lexer (private).
-- [x] Published source snapshot: release tag `lexer-compliance-1`. Its commit identifies the source; the release ZIP manifest is verified against that commit.
-- [ ] Record this revision in the course hand-in and retain the receipt.
-- [ ] Calendar deadline and timezone: **not confirmed**. The supplied sheet states Thursday 11:59 PM only.
-- [ ] Central repository/submission destination: **not supplied**. Use the instructor's course announcement.
-- [ ] Submit the tested ZIP and actual GitHub repository link; retain the hand-in receipt.
-- [ ] Print `docs/ClariFix-Revised-Proposal.pdf`.
+- [ ] Give the instructor/group access to the private repository.
+- [ ] Record the `paper-alignment-2` commit in the course hand-in.
+- [ ] Confirm the calendar deadline and timezone; the supplied guideline only says Thursday 11:59 PM.
+- [ ] Confirm the central submission destination from the instructor's announcement.
+- [ ] Submit the tested ZIP and actual repository link; retain the receipt.
+- [ ] Print `docs/ClariFix-Updated-Paper.pdf` and `docs/ClariFix-Revised-Proposal.pdf` (alignment addendum).
 - [ ] Prepare the group index card for checking day.
 
-The partial report for `errors.clf` is deliberate. Review it with `reports/errors-diagnostics.txt`; do not treat it as successful lexical analysis. A successful lexer run produces tokens and reports, not program execution.
+The invalid example's report is deliberately partial; review it with its diagnostics. Successful lexical analysis is not program execution.

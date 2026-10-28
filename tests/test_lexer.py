@@ -17,6 +17,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class LexerTests(unittest.TestCase):
+    def exports(self, source, suffix='.clx', *options):
+        with tempfile.TemporaryDirectory(prefix='clarifix-paper-') as directory:
+            root = Path(directory)
+            path = root / ('sample' + suffix)
+            path.write_bytes(source.encode('utf-8') if isinstance(source, str) else source)
+            report, symbols, table = [root / name for name in ('report.txt', 'symbols.tsv', 'table.tsv')]
+            p = subprocess.run([str(EXE), '--report', str(report), '--symbols', str(symbols),
+                                '--table', str(table), *options, str(path)], capture_output=True, timeout=10)
+            text = report.read_text(encoding='utf-8') if report.exists() else ''
+            with symbols.open(encoding='utf-8', newline='') as stream:
+                entries = list(csv.DictReader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
+            with table.open(encoding='utf-8', newline='') as stream:
+                tokens = list(csv.DictReader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
+            return p.returncode, text, entries, tokens, p.stderr.decode('utf-8')
+
     def scan(self, source, *options, suffix='.clf'):
         with tempfile.TemporaryDirectory(prefix='clarifix-') as directory:
             path = Path(directory) / ('input' + suffix)
@@ -171,10 +186,12 @@ class LexerTests(unittest.TestCase):
             by_name = {r['LEXEME']:r for r in table}
             self.assertEqual(by_name['x']['OCCURRENCES'], '2')
             self.assertEqual(by_name['x']['FIRST_COLUMN'], '5')
-            self.assertEqual(by_name['x']['ORIGIN'], 'IDENTIFIER')
-            self.assertEqual(by_name['to']['TOKEN'], 'NOISE')
-            self.assertEqual(by_name['to']['OCCURRENCES'], '1')
-            self.assertEqual(by_name['function']['OCCURRENCES'], '0')
+            self.assertEqual(by_name['x']['CATEGORY'], 'Identifier')
+            self.assertEqual(by_name['1']['TOKEN'], 'CONST_INT')
+            self.assertEqual(by_name['1']['VALUE'], '1')
+            self.assertEqual(len(table), 2)
+            self.assertNotIn('to', by_name)
+            self.assertNotIn('function', by_name)
             self.assertIn('\tASSIGN\tto\t', tokens.read_text())
             original = source.read_bytes()
             p = subprocess.run([str(EXE), '--tokens', str(source), str(source)], capture_output=True, timeout=10)
@@ -218,7 +235,7 @@ class LexerTests(unittest.TestCase):
         baseline = subprocess.run([str(EXE), str(source)], capture_output=True, timeout=10)
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / 'report.txt'
-            result = subprocess.run([str(EXE), '--report', str(report), str(source)], capture_output=True, timeout=10)
+            result = subprocess.run([str(EXE), '--table', str(report), str(source)], capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout, baseline.stdout)
             expected = (ROOT / 'tests/fixtures/report.expected.tsv').read_text(encoding='utf-8')
@@ -229,13 +246,13 @@ class LexerTests(unittest.TestCase):
             directory = Path(directory)
             source, report = directory / 'input.clf', directory / 'report.txt'
             source.write_bytes(b'/* first\nsecond\t\\\xff */\nshow 1. show 2.5. show \'A\'. show "hi\\n". show true.\n# end')
-            result = subprocess.run([str(EXE), '--report', str(report), str(source)], capture_output=True, timeout=10)
+            result = subprocess.run([str(EXE), '--table', str(report), str(source)], capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             rows = list(csv.reader(io.StringIO(report.read_text(encoding='utf-8')), delimiter='\t', quoting=csv.QUOTE_NONE))
             self.assertTrue(all(len(row) == 2 for row in rows))
-            self.assertEqual(rows[1], ['BLOCK_COMMENT', r'/* first\nsecond\t\\\xFF */'])
-            for pair in [('INT_LITERAL','1'), ('DECIMAL_LITERAL','2.5'), ('CHAR_LITERAL',"'A'"),
-                         ('STRING_LITERAL', r'"hi\\n"'), ('BOOL_LITERAL','true'), ('LINE_COMMENT','# end')]:
+            self.assertEqual(rows[1], ['MULTI_COMMENT', r'/* first\nsecond\t\\\xFF */'])
+            for pair in [('CONST_INT','1'), ('CONST_DECIMAL','2.5'), ('CONST_CHAR',"'A'"),
+                         ('CONST_STRING', r'"hi\\n"'), ('CONST_BOOLEAN','true'), ('SINGLE_COMMENT','# end')]:
                 self.assertIn(list(pair), rows)
             self.assertFalse(any(row[0] in {'EOF','NEWLINE','INDENT','DEDENT'} for row in rows))
 
@@ -245,21 +262,21 @@ class LexerTests(unittest.TestCase):
             source = directory / 'input.clf'
             source.write_text('', encoding='utf-8')
             report = directory / 'empty.txt'
-            result = subprocess.run([str(EXE), '--report', str(report), str(source)], capture_output=True, timeout=10)
+            result = subprocess.run([str(EXE), '--table', str(report), str(source)], capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 0)
             self.assertEqual(report.read_text(), 'TOKEN TYPE\tLEXEME\n')
             for output in [report, source, directory / 'missing/report.txt']:
-                result = subprocess.run([str(EXE), '--report', str(output), str(source)], capture_output=True, timeout=10)
+                result = subprocess.run([str(EXE), '--table', str(output), str(source)], capture_output=True, timeout=10)
                 self.assertEqual(result.returncode, 2)
             self.assertEqual(source.read_bytes(), b'')
             source.write_text('show @.\nshow 42.', encoding='utf-8')
             report = directory / 'partial.txt'
-            result = subprocess.run([str(EXE), '--report', str(report), str(source)], capture_output=True, timeout=10)
+            result = subprocess.run([str(EXE), '--table', str(report), str(source)], capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 1)
             self.assertIn(b'Report output is partial', result.stderr)
-            self.assertIn('INT_LITERAL\t42', report.read_text())
+            self.assertIn('CONST_INT\t42', report.read_text())
             self.assertNotIn('@', report.read_text())
-            self.assertEqual(subprocess.run([str(EXE), '--report'], capture_output=True, timeout=10).returncode, 2)
+            self.assertEqual(subprocess.run([str(EXE), '--table'], capture_output=True, timeout=10).returncode, 2)
 
     def test_invalid_bytes_and_rendered_caret(self):
         for source in [b'show "\xff".', b'show\t@.', 'show "é" @.'.encode('utf-8'), b'show "\x00".']:
@@ -280,18 +297,18 @@ class LexerTests(unittest.TestCase):
     def test_checklist_report_coverage(self):
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / 'report.txt'
-            result = subprocess.run([str(EXE), '--report', str(report), str(ROOT / 'examples/checklist.clf')], capture_output=True, timeout=10)
+            result = subprocess.run([str(EXE), '--table', str(report), str(ROOT / 'examples/checklist.clf')], capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             with report.open(encoding='utf-8', newline='') as stream:
                 rows = list(csv.DictReader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
             kinds = {row['TOKEN TYPE'] for row in rows}
             required = set(('SET SHOW ASK IF ELIF ELSE WHILE FOR IN FUNCTION RETURN BREAK CONTINUE '
-                            'INT_LITERAL DECIMAL_LITERAL CHAR_LITERAL STRING_LITERAL BOOL_LITERAL '
-                            'NOISE_WORD LINE_COMMENT BLOCK_COMMENT IDENTIFIER '
+                            'CONST_INT CONST_DECIMAL CONST_CHAR CONST_STRING CONST_BOOLEAN '
+                            'NOISE SINGLE_COMMENT MULTI_COMMENT IDENTIFIER '
                             'PLUS MINUS STAR SLASH FLOOR_DIV MOD POWER INCREMENT DECREMENT '
                             'AND OR NOT EQ NE LT GT LE GE ASSIGN PLUS_ASSIGN MINUS_ASSIGN '
                             'STAR_ASSIGN SLASH_ASSIGN MOD_ASSIGN POWER_ASSIGN '
-                            'LPAREN RPAREN LBRACKET RBRACKET COMMA PERIOD COLON').split())
+                            'LPAREN RPAREN LBRACKET RBRACKET COMMA STATEMENT_TERMINATOR COLON').split())
             self.assertTrue(required <= kinds, required - kinds)
 
     def test_seeded_malformed_inputs_do_not_crash_or_hang(self):
@@ -302,6 +319,141 @@ class LexerTests(unittest.TestCase):
             status, rows, diagnostic = self.scan(source)
             self.assertIn(status, [0,1], diagnostic)
             self.assertEqual(rows[-1]['TOKEN'], 'EOF')
+
+    def test_paper_page20_sample(self):
+        status, report, symbols, tokens, diagnostic = self.exports((ROOT / 'examples/sample.clx').read_text(encoding='utf-8'))
+        self.assertEqual(status, 0, diagnostic)
+        self.assertIn('Source file : sample.clx', report)
+        self.assertEqual(report, (ROOT / 'tests/fixtures/paper-sample.expected.txt').read_text(encoding='utf-8'))
+        self.assertEqual([(s['ID'], s['LEXEME'], s['TOKEN'], s['VALUE'], s['LENGTH'], s['FIRST_LINE'], s['FIRST_COLUMN']) for s in symbols],
+                         [('1','total','IDENTIFIER','-','5','2','5'), ('2','10','CONST_INT','10','2','2','14')])
+        self.assertEqual([(t['TOKEN TYPE'], t['LEXEME']) for t in tokens],
+                         [('SINGLE_COMMENT','# avg calc'), ('SET','set'), ('IDENTIFIER','total'),
+                          ('NOISE','to'), ('CONST_INT','10'), ('STATEMENT_TERMINATOR','.'),
+                          ('SHOW','show'), ('IDENTIFIER','total'), ('STATEMENT_TERMINATOR','.')])
+        self.assertIn('Identifiers: 2 | Keywords: 2 | Noise words: 1 | Constants: 1', report)
+        self.assertIn('Delimiters: 2 | Comments: 1 | Operators: 0 | Invalid: 0 | Total tokens: 9', report)
+        a, b, c, d = [report.split(f'[{letter}]',1)[1].split('\n[',1)[0] for letter in 'ABCD']
+        self.assertEqual(len([line for line in a.splitlines() if re.match(r'^\d+ ',line)]), 9)
+        self.assertRegex(b, r'(?m)^1 +total +IDENTIFIER +- +5 +2:5$')
+        self.assertRegex(b, r'(?m)^2 +10 +CONST_INT +10 +2 +2:14$')
+        self.assertIn('(none)', c)
+        self.assertFalse(any('\t' in line or line.endswith(' ') for line in report.splitlines()))
+
+    def test_constants_values_types_and_unicode_lengths(self):
+        source = 'show 00010. show 10. show 0019.9900. show 00.000. show true. show false. show true. show \'é\'. show "a\\n\\\"\\\\". show "".'
+        status, _, symbols, _, diagnostic = self.exports(source)
+        self.assertEqual(status, 0, diagnostic)
+        by_name = {s['LEXEME']:s for s in symbols}
+        self.assertEqual(by_name['00010']['VALUE'], '10')
+        self.assertEqual(by_name['0019.9900']['VALUE'], '19.99')
+        self.assertEqual(by_name['00.000']['VALUE'], '0.0')
+        self.assertNotEqual(by_name['00010']['ID'], by_name['10']['ID'])
+        self.assertEqual(by_name['true']['TOKEN'], 'CONST_BOOLEAN')
+        self.assertEqual(by_name['true']['VALUE'], 'true')
+        self.assertEqual(by_name['true']['OCCURRENCES'], '2')
+        self.assertEqual(by_name["'é'"]['LENGTH'], '3')
+        self.assertEqual(by_name["'é'"]['VALUE'], 'é')
+        self.assertEqual(by_name['"a\\\\n\\\\"\\\\\\\\"']['VALUE'], 'a\\n"\\\\')
+        self.assertEqual(by_name['""']['VALUE'], '')
+        self.assertTrue(all(s['CATEGORY'] == 'Constant' for s in symbols))
+
+    def test_exact_large_numeric_values(self):
+        integer = '9' * 400
+        decimal = '0.' + '0' * 400 + '1234000'
+        status, _, symbols, _, diagnostic = self.exports(f'show {integer}. show {decimal}.')
+        self.assertEqual(status, 0, diagnostic)
+        self.assertEqual([s['VALUE'] for s in symbols], [integer, decimal.rstrip('0')])
+
+    def test_hash_collision_chains_and_case_sensitive_keys(self):
+        def bucket(word):
+            h = 5381
+            for c in word.encode():
+                h = (h * 33 + c) & ((1 << 64) - 1)
+            return h % 211
+        groups = {}
+        for i in range(10000):
+            word = f'collision{i}'
+            group = groups.setdefault(bucket(word), [])
+            group.append(word)
+            if len(group) == 4:
+                names = group
+                break
+        names = names + ['Total', 'total']
+        status, _, symbols, _, diagnostic = self.exports(' '.join(names + names))
+        self.assertEqual(status, 0, diagnostic)
+        self.assertEqual([s['LEXEME'] for s in symbols], names)
+        self.assertEqual([s['ID'] for s in symbols], [str(i+1) for i in range(len(names))])
+        self.assertTrue(all(s['OCCURRENCES'] == '2' for s in symbols))
+
+    def test_paper_empty_sections_and_no_preloaded_symbols(self):
+        status, report, symbols, tokens, diagnostic = self.exports('')
+        self.assertEqual(status, 0, diagnostic)
+        self.assertEqual(symbols, [])
+        self.assertEqual(tokens, [])
+        self.assertEqual(report.count('(none)'), 3)
+        self.assertIn('Total tokens: 0', report)
+        status, _, symbols, _, _ = self.exports('show if + ( ) # comment\n')
+        self.assertEqual(status, 0)
+        self.assertEqual(symbols, [])
+
+    def test_paper_invalid_records_and_partial_recovery(self):
+        status, report, symbols, _, diagnostic = self.exports('show @.\nset 1name = 2.\nshow "bad\\q".\nshow 42.\n')
+        self.assertEqual(status, 1)
+        c = report.split('[C]',1)[1].split('[D]',1)[0]
+        self.assertIn('@', c)
+        self.assertIn('1name', c)
+        self.assertIn(r'\\q', c)
+        for code in ('E103','E110','E111'):
+            self.assertIn(code, c)
+        self.assertIn('Invalid: 3', report)
+        self.assertEqual([s['LEXEME'] for s in symbols], ['42'])
+        self.assertIn('Report output is partial', diagnostic)
+        status, report, _, _, _ = self.exports('show @.\n' * 8)
+        self.assertEqual(status, 1)
+        self.assertIn('Invalid: 5', report)
+
+    def test_paper_extensions_and_both_layout_modes(self):
+        for extension in ('.clx','.clf'):
+            status, report, _, _, diagnostic = self.exports('if true:\n    show 1.', extension)
+            self.assertEqual(status, 0, diagnostic)
+            self.assertIn('sample'+extension, report)
+        status, _, _, _, diagnostic = self.exports('if (true) { show 1. }', '.clx', '--braces')
+        self.assertEqual(status, 0, diagnostic)
+
+    def test_paper_report_protection_and_portable_filename(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            reports = []
+            for name in ('first','second'):
+                folder = root / name
+                folder.mkdir()
+                source = folder / 'sample.clx'
+                source.write_text('set x = 10.', encoding='utf-8')
+                original = source.read_bytes()
+                p = subprocess.run([str(EXE), '--report', str(source), str(source)], capture_output=True, timeout=10)
+                self.assertEqual(p.returncode, 2)
+                self.assertEqual(source.read_bytes(), original)
+                report = folder / 'report.txt'
+                args = [str(EXE), '--report', str(report), str(source)]
+                self.assertEqual(subprocess.run(args, capture_output=True, timeout=10).returncode, 0)
+                self.assertEqual(subprocess.run(args, capture_output=True, timeout=10).returncode, 2)
+                reports.append(report.read_bytes())
+            self.assertEqual(*reports)
+
+    def test_paper_invalid_fragments_and_no_invalid_constants(self):
+        cases = [(b'show "\xff".', 'E103', r'\xFF'), ('show "bad\\q".', 'E111', r'\\q'),
+                 ("show 'AB'.", 'E112', "'AB'"), ('show ' + 'a' * 33 + '.', 'E104', 'a' * 33),
+                 ('/* unclosed\ncomment', 'E106', r'/* unclosed\ncomment'),
+                 ('show “text”.', 'E109', '“'), ('show "unclosed', 'E102', '"unclosed')]
+        for source, code, fragment in cases:
+            with self.subTest(code=code):
+                status, report, symbols, _, _ = self.exports(source)
+                self.assertEqual(status, 1)
+                c = report.split('[C]',1)[1].split('[D]',1)[0]
+                self.assertIn(code, c)
+                self.assertIn(fragment, c)
+                self.assertEqual(symbols, [])
 
 
 if __name__ == '__main__':

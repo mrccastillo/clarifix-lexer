@@ -6,13 +6,15 @@
 static void usage(FILE *out)
 {
     fputs("ClariFix lexical analyzer\n"
-          "Usage: clarifix [--braces] [--report FILE] [--tokens FILE] [--symbols FILE] SOURCE.clf\n"
+          "Usage: clarifix [--braces] [--report FILE] [--table FILE] [--tokens FILE] [--symbols FILE] SOURCE.clx\n"
           "       clarifix --help\n\n"
           "Default: four-space indentation and token output on stdout.\n"
           "--braces       Use { } blocks; ignore indentation and newlines.\n"
           "--tokens FILE  Write token TSV to FILE instead of stdout.\n"
-          "--symbols FILE Write the internal trie-backed symbol inventory as TSV.\n"
-          "--report FILE  Write the instructor's two-column Symbol Table as TSV.\n"
+          "--symbols FILE Write unique identifiers/constants and attributes as TSV.\n"
+          "--report FILE  Write the paper's four-section Symbol Table report.\n"
+          "--table FILE   Write a two-column token-type/lexeme TSV.\n"
+          "Source types: .clx (canonical), .clf (compatibility alias).\n"
           "Exit codes: 0 = lexical success, 1 = lexical errors, 2 = usage/I/O error.\n",
           out);
 }
@@ -55,12 +57,14 @@ static char *read_source(const char *path, size_t *length)
     return source;
 }
 
-static int write_output(const char *path, int symbols, const char *source, const CfResult *r)
+static int write_output(const char *path, int symbols, const char *source,
+                        const char *source_name, const CfResult *r)
 {
     /* C11 exclusive creation protects source files and previous results. */
     FILE *out = path ? fopen(path, "wx") : stdout;
     if (!out) { perror(path); return 2; }
-    int status = symbols == 2 ? cf_write_report(out, source, r) :
+    int status = symbols == 3 ? cf_write_table(out, source, r) :
+                 symbols == 2 ? cf_write_report(out, source, source_name, r) :
                  symbols == 1 ? cf_write_symbols(out, r) : cf_write_tokens(out, source, r);
     if (path) { if (fclose(out) != 0) status = 2; }
     else if (fflush(out) != 0) status = 2;
@@ -70,28 +74,30 @@ static int write_output(const char *path, int symbols, const char *source, const
 
 int main(int argc, char **argv)
 {
-    const char *input = NULL, *tokens = NULL, *symbols = NULL, *report = NULL;
+    const char *input = NULL, *tokens = NULL, *symbols = NULL, *report = NULL, *table = NULL;
     int braces = 0;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) { usage(stdout); return 0; }
         if (strcmp(argv[i], "--braces") == 0) braces = 1;
         else if (strcmp(argv[i], "--tokens") == 0 || strcmp(argv[i], "--symbols") == 0 ||
-                 strcmp(argv[i], "--report") == 0) {
+                 strcmp(argv[i], "--report") == 0 || strcmp(argv[i], "--table") == 0) {
             int is_symbols = strcmp(argv[i], "--symbols") == 0;
             int is_report = strcmp(argv[i], "--report") == 0;
+            int is_table = strcmp(argv[i], "--table") == 0;
             if (++i == argc || argv[i][0] == '-') { usage(stderr); return 2; }
-            if (is_report) report = argv[i];
+            if (is_table) table = argv[i];
+            else if (is_report) report = argv[i];
             else if (is_symbols) symbols = argv[i]; else tokens = argv[i];
         } else if (argv[i][0] == '-' || input) { usage(stderr); return 2; }
         else input = argv[i];
     }
     if (!input) { usage(stderr); return 2; }
     const char *extension = strrchr(input, '.');
-    if (!extension || strcmp(extension, ".clf") != 0) {
+    if (!extension || (strcmp(extension, ".clx") != 0 && strcmp(extension, ".clf") != 0)) {
         fputs("Error E100 (Lexical Error)\n"
-              "What happened: The source filename does not end in .clf.\n"
-              "Why: This implementation uses .clf for ClariFix source files.\n"
-              "How to fix: Save your source with the .clf extension.\n", stderr);
+              "What happened: The source filename does not end in .clx or .clf.\n"
+              "Why: ClariFix uses .clx; .clf remains a compatibility alias.\n"
+              "How to fix: Save your source with the .clx extension.\n", stderr);
         return 1;
     }
     size_t length;
@@ -99,9 +105,12 @@ int main(int argc, char **argv)
     if (!source) return 2;
     CfResult result;
     int status = cf_lex(source, length, braces, stderr, &result);
-    if (write_output(tokens, 0, source, &result)) status = 2;
-    if (symbols && write_output(symbols, 1, source, &result)) status = 2;
-    if (report && write_output(report, 2, source, &result)) status = 2;
+    const char *source_name = input;
+    for (const char *p = input; *p; p++) if (*p == '/' || *p == '\\') source_name = p + 1;
+    if (write_output(tokens, 0, source, source_name, &result)) status = 2;
+    if (symbols && write_output(symbols, 1, source, source_name, &result)) status = 2;
+    if (report && write_output(report, 2, source, source_name, &result)) status = 2;
+    if (table && write_output(table, 3, source, source_name, &result)) status = 2;
     fprintf(stderr, "Lexical analysis: %zu token(s), %zu symbol(s), %zu error(s).%s\n",
             result.token_count, result.symbol_count, result.errors,
             result.errors ? " Token output is partial; do not execute it. Report output is partial." : "");

@@ -13,7 +13,6 @@ static const Fixed fixed[] = {
     {"while", CF_WHILE, 0}, {"for", CF_FOR, 0}, {"in", CF_IN, 0},
     {"function", CF_FUNCTION, 0}, {"return", CF_RETURN, 0},
     {"break", CF_BREAK, 0}, {"continue", CF_CONTINUE, 0},
-    {"true", CF_BOOL, 0}, {"false", CF_BOOL, 0},
     {"and", CF_AND, 0}, {"or", CF_OR, 0}, {"not", CF_NOT, 0}, {"is", CF_IS, 0},
     {"to", CF_NOISE, 1}, {"the", CF_NOISE, 3}, {"of", CF_NOISE, 3}, {"then", CF_NOISE, 2},
     {"+", CF_PLUS, 0}, {"-", CF_MINUS, 0}, {"*", CF_STAR, 0}, {"/", CF_SLASH, 0},
@@ -31,8 +30,8 @@ static const Fixed fixed[] = {
 };
 
 typedef struct { char close; size_t offset, line, column; } Bracket;
-/* Sparse character transitions. Node 0 is the root; terminal IDs are stable. */
-typedef struct { unsigned char c; size_t child, sibling, symbol; } Node;
+/* Reserved/operator acceptance is separate from dynamic symbol identity. */
+typedef struct { unsigned char c; size_t child, sibling, fixed; int boolean; } Node;
 typedef struct {
     const char *s;
     size_t length, pos, line, column;
@@ -115,24 +114,79 @@ static size_t extend(Lexer *l, size_t state, unsigned char c)
     if (next) return next;
     GROW(l->nodes, l->node_count, l->node_capacity);
     next = l->node_count++;
-    l->nodes[next] = (Node){c, 0, l->nodes[state].child, 0};
+    l->nodes[next] = (Node){c, 0, l->nodes[state].child, 0, 0};
     l->nodes[state].child = next;
     return next;
 }
-static size_t accept(Lexer *l, size_t state, const char *s, size_t n,
-                     CfTokenType type, int is_fixed)
+static size_t utf8_span(const char *s, size_t n);
+static char *copy_text(const char *s, size_t n)
 {
-    if (l->nodes[state].symbol) return l->nodes[state].symbol;
+    char *text = resize(NULL, n + 1, 1);
+    memcpy(text, s, n); text[n] = '\0';
+    return text;
+}
+static size_t scalar_count(const char *s, size_t n)
+{
+    size_t count = 0;
+    for (size_t i = 0; i < n; count++) {
+        size_t bytes = utf8_span(s + i, n - i);
+        i += bytes ? bytes : 1;
+    }
+    return count;
+}
+static char *constant_value(const char *s, size_t n, CfTokenType type)
+{
+    if (type == CF_IDENT) return NULL;
+    if (type == CF_INT || type == CF_DECIMAL) {
+        size_t first = 0, end = n;
+        while (first + 1 < n && s[first] == '0' && s[first + 1] != '.') first++;
+        if (type == CF_DECIMAL) {
+            while (end > first && s[end - 1] == '0') end--;
+            if (s[end - 1] == '.') end++; /* An integral decimal retains .0. */
+        }
+        return copy_text(s + first, end - first);
+    }
+    if (type == CF_BOOL) return copy_text(s, n);
+    char *value = resize(NULL, n + 1, 1);
+    size_t dest = 0;
+    for (size_t i = 1; i + 1 < n; i++) {
+        char c = s[i];
+        if (c == '\\') { c = s[++i]; if (c == 'n') c = '\n'; }
+        value[dest++] = c;
+    }
+    value[dest] = '\0';
+    return value;
+}
+static size_t symtab_insert(Lexer *l, const char *s, size_t n, CfTokenType type,
+                            size_t line, size_t column)
+{
+    size_t state = 0;
+    uint64_t hash = 5381;
+    for (size_t i = 0; i < n; i++) {
+        unsigned char c = (unsigned char)s[i];
+        state = extend(l, state, c);
+        hash = hash * UINT64_C(33) + c;
+    }
     CfResult *r = l->r;
+    size_t bucket = (size_t)(hash % CF_SYMBOL_BUCKETS);
+    for (size_t id = r->buckets[bucket]; id; id = r->symbols[id - 1].next) {
+        CfSymbol *entry = &r->symbols[id - 1];
+        if (entry->identity == state && entry->type == type) {
+            entry->occurrences++;
+            return id;
+        }
+    }
     GROW(r->symbols, r->symbol_count, r->symbol_capacity);
     CfSymbol *symbol = &r->symbols[r->symbol_count++];
     memset(symbol, 0, sizeof(*symbol));
-    symbol->lexeme = resize(NULL, n + 1, 1);
-    memcpy(symbol->lexeme, s, n);
-    symbol->lexeme[n] = '\0';
+    symbol->lexeme = copy_text(s, n);
     symbol->type = type;
-    symbol->fixed = is_fixed;
-    l->nodes[state].symbol = r->symbol_count;
+    symbol->value = constant_value(s, n, type);
+    symbol->length = scalar_count(s, n);
+    symbol->line = line; symbol->column = column; symbol->occurrences = 1;
+    symbol->identity = state;
+    symbol->next = r->buckets[bucket];
+    r->buckets[bucket] = r->symbol_count;
     return r->symbol_count;
 }
 static void report(Lexer *l, CfTokenType type, size_t start, size_t n,
@@ -142,22 +196,22 @@ static void report(Lexer *l, CfTokenType type, size_t start, size_t n,
     GROW(r->report, r->report_count, r->report_capacity);
     r->report[r->report_count++] = (CfToken){type, start, n, line, col, symbol};
 }
-static void seen(Lexer *l, size_t id, size_t line, size_t column)
-{
-    CfSymbol *s = &l->r->symbols[id - 1];
-    if (!s->occurrences) { s->line = line; s->column = column; }
-    s->occurrences++;
-}
-static void emit(Lexer *l, CfTokenType type, size_t start, size_t n,
+static void emit_parser(Lexer *l, CfTokenType type, size_t start, size_t n,
                  size_t line, size_t col, size_t symbol)
 {
     CfResult *r = l->r;
     GROW(r->tokens, r->token_count, r->token_capacity);
     r->tokens[r->token_count++] = (CfToken){type, start, n, line, col, symbol};
-    if (n && !(type == CF_ASSIGN && symbol && r->symbols[symbol - 1].type == CF_NOISE))
-        report(l, type, start, n, line, col, symbol);
     if (type == CF_PERIOD || type == CF_NEWLINE || type == CF_LBRACE || type == CF_RBRACE)
         l->statement = r->token_count;
+}
+static void emit(Lexer *l, CfTokenType type, size_t start, size_t n,
+                 size_t line, size_t col, size_t symbol)
+{
+    if (type == CF_IDENT || (type >= CF_INT && type <= CF_BOOL))
+        symbol = symtab_insert(l, l->s + start, n, type, line, col);
+    emit_parser(l, type, start, n, line, col, symbol);
+    if (n) report(l, type, start, n, line, col, symbol);
 }
 static void structural(Lexer *l, CfTokenType type)
 {
@@ -188,6 +242,26 @@ static void error_at(Lexer *l, int code, size_t offset, size_t line, size_t col,
     size_t begin = offset, end = offset;
     while (begin && l->s[begin - 1] != '\n') begin--;
     while (end < l->length && l->s[end] != '\n') end++;
+    size_t bad_start = offset, bad_end = offset;
+    if (code == 107 || code == 108) {
+        bad_start = begin; bad_end = begin;
+        while (bad_end < end && (l->s[bad_end] == ' ' || l->s[bad_end] == '\t')) bad_end++;
+    } else if (code == 104 || code == 105 || code == 110) {
+        while (bad_end < end && (letter((unsigned char)l->s[bad_end]) ||
+               digit((unsigned char)l->s[bad_end]) ||
+               (code == 110 && l->s[bad_end] == '.' && bad_end + 1 < end && digit((unsigned char)l->s[bad_end + 1])))) bad_end++;
+    } else if (code == 106) bad_end = l->length;
+    else if ((code == 102 || code == 112) && offset < end &&
+             (l->s[offset] == '\'' || l->s[offset] == '"')) {
+        bad_end = code == 112 ? l->pos : end;
+    } else if (code == 111) bad_end = offset + 2 <= end ? offset + 2 : end;
+    else if (offset < end) {
+        size_t bytes = utf8_span(l->s + offset, end - offset);
+        bad_end = offset + (bytes ? bytes : 1);
+    }
+    if (bad_end == bad_start && bad_start < end) bad_end++;
+    GROW(l->r->invalid, l->r->invalid_count, l->r->invalid_capacity);
+    l->r->invalid[l->r->invalid_count++] = (CfInvalid){bad_start, bad_end - bad_start, line, col, code, what};
     fprintf(l->diagnostics, "Error E%d (Lexical Error) at line %zu, column %zu\n  ", code, line, col);
     /* Escape invalid bytes and controls; track the rendered caret position. */
     size_t caret = 0;
@@ -316,19 +390,19 @@ static void word(Lexer *l)
                  "ClariFix limits identifier length to 32 characters.", "Choose a shorter name.");
         recover(l); return;
     }
-    size_t id = accept(l, state, l->s + start, n, CF_IDENT, 0);
-    CfTokenType type = l->r->symbols[id - 1].type;
-    seen(l, id, line, col);
+    size_t fixed_id = l->nodes[state].fixed;
+    CfTokenType type = fixed_id ? fixed[fixed_id - 1].type :
+                       l->nodes[state].boolean ? CF_BOOL : CF_IDENT;
     if (type == CF_NOISE) {
-        int noise = l->r->symbols[id - 1].noise;
+        int noise = fixed[fixed_id - 1].noise;
         size_t count = l->r->token_count - l->statement;
         CfTokenType head = count ? l->r->tokens[l->statement].type : CF_EOF;
         int allowed = 0;
         if (noise == 1) {
             allowed = head == CF_SET && target_complete(l);
             if (allowed) {
-                report(l, CF_NOISE, start, n, line, col, id);
-                emit(l, CF_ASSIGN, start, n, line, col, id); return;
+                report(l, CF_NOISE, start, n, line, col, 0);
+                emit_parser(l, CF_ASSIGN, start, n, line, col, 0); return;
             }
         } else if (noise == 2) {
             allowed = (head == CF_IF || head == CF_ELIF) && count > 1 && next_significant(l) == ':';
@@ -344,11 +418,11 @@ static void word(Lexer *l)
                      "Use 'to' after a set target, 'then' before an if/elif colon, or 'the'/'of' before a set/show/ask operand.");
             recover(l);
         } else {
-            report(l, CF_NOISE, start, n, line, col, id);
+            report(l, CF_NOISE, start, n, line, col, 0);
         }
         return;
     }
-    emit(l, type, start, n, line, col, id);
+    emit(l, type, start, n, line, col, 0);
 }
 static void number(Lexer *l)
 {
@@ -434,14 +508,14 @@ static int symbol(Lexer *l)
     for (size_t ahead = 0; ahead < l->length - l->pos; ahead++) {
         state = transition(l, state, peek(l, ahead));
         if (!state) break;
-        size_t candidate = l->nodes[state].symbol;
-        if (candidate && l->r->symbols[candidate - 1].fixed) {
+        size_t candidate = l->nodes[state].fixed;
+        if (candidate) {
             id = candidate; width = ahead + 1;
         }
     }
     if (!id) return 0;
     size_t start = l->pos, line = l->line, col = l->column;
-    CfTokenType type = l->r->symbols[id - 1].type;
+    CfTokenType type = fixed[id - 1].type;
     char c = (char)peek(l, 0);
     if (!l->braces && (c == '{' || c == '}')) {
         error_at(l, 103, start, line, col, "A brace appears in indentation mode.",
@@ -460,8 +534,7 @@ static int symbol(Lexer *l)
         l->bracket_count--;
     }
     for (size_t j = 0; j < width; j++) advance(l);
-    seen(l, id, line, col);
-    emit(l, type, start, width, line, col, id);
+    emit(l, type, start, width, line, col, 0);
     return 1;
 }
 
@@ -475,16 +548,22 @@ int cf_lex(const char *source, size_t length, int braces, FILE *diagnostics, CfR
     GROW(l.indents, l.indent_count, l.indent_capacity);
     l.indents[l.indent_count++] = 0;
     GROW(l.nodes, l.node_count, l.node_capacity);
-    l.nodes[l.node_count++] = (Node){0, 0, 0, 0};
+    l.nodes[l.node_count++] = (Node){0, 0, 0, 0, 0};
     for (size_t i = 0; i < sizeof(fixed) / sizeof(fixed[0]); i++) {
         size_t state = 0, n = 0;
         while (fixed[i].word[n]) {
             state = extend(&l, state, (unsigned char)fixed[i].word[n]);
             n++;
         }
-        size_t id = accept(&l, state, fixed[i].word, n, fixed[i].type, 1);
-        /* Accepting actions are assigned during construction, never by matching input words. */
-        result->symbols[id - 1].noise = fixed[i].noise;
+        l.nodes[state].fixed = i + 1;
+    }
+    /* Boolean DFA accepting states are separate from the reserved vocabulary. */
+    const char *booleans[] = {"true", "false"};
+    for (size_t i = 0; i < 2; i++) {
+        size_t state = 0;
+        for (size_t j = 0; booleans[i][j]; j++)
+            state = extend(&l, state, (unsigned char)booleans[i][j]);
+        l.nodes[state].boolean = (int)i + 1;
     }
     while (l.pos < length && result->errors < ERROR_LIMIT) {
         unsigned char c = peek(&l, 0);
@@ -556,43 +635,194 @@ int cf_write_tokens(FILE *out, const char *source, const CfResult *r)
     }
     return ferror(out) ? 2 : 0;
 }
+static const char *public_name(CfTokenType type)
+{
+    switch (type) {
+    case CF_IDENT: return "IDENTIFIER";
+    case CF_INT: return "CONST_INT";
+    case CF_DECIMAL: return "CONST_DECIMAL";
+    case CF_CHAR: return "CONST_CHAR";
+    case CF_STRING: return "CONST_STRING";
+    case CF_BOOL: return "CONST_BOOLEAN";
+    case CF_LINE_COMMENT: return "SINGLE_COMMENT";
+    case CF_BLOCK_COMMENT: return "MULTI_COMMENT";
+    case CF_PERIOD: return "STATEMENT_TERMINATOR";
+    default: return cf_token_name(type);
+    }
+}
+static const char *category(CfTokenType type)
+{
+    if (type == CF_IDENT) return "Identifier";
+    if (type >= CF_INT && type <= CF_BOOL) return "Constant";
+    if (type >= CF_SET && type <= CF_CONTINUE) return "Keyword";
+    if (type == CF_NOISE) return "Noise word";
+    if (type == CF_LINE_COMMENT || type == CF_BLOCK_COMMENT) return "Comment";
+    if (type >= CF_LPAREN && type <= CF_COLON) return "Delimiter";
+    return "Operator";
+}
+static char *escaped_text(const char *s, size_t n)
+{
+    if (n > (SIZE_MAX - 1) / 4) exit(2);
+    char *text = resize(NULL, 4 * n + 1, 1);
+    const char hex[] = "0123456789ABCDEF";
+    size_t dest = 0;
+    for (size_t i = 0; i < n;) {
+        unsigned char c = (unsigned char)s[i];
+        size_t bytes = utf8_span(s + i, n - i);
+        if (c == '\\' || c == '\n' || c == '\t' || c == '\r') {
+            text[dest++] = '\\';
+            text[dest++] = c == '\\' ? '\\' : c == '\n' ? 'n' : c == '\t' ? 't' : 'r';
+        } else if (!bytes || c < 32 || c == 127) {
+            text[dest++] = '\\'; text[dest++] = 'x';
+            text[dest++] = hex[c >> 4]; text[dest++] = hex[c & 15];
+        } else {
+            memcpy(text + dest, s + i, bytes); dest += bytes; i += bytes; continue;
+        }
+        i++;
+    }
+    text[dest] = '\0';
+    return text;
+}
 int cf_write_symbols(FILE *out, const CfResult *r)
 {
-    fputs("ID\tLEXEME\tTOKEN\tORIGIN\tFIRST_LINE\tFIRST_COLUMN\tOCCURRENCES\n", out);
+    fputs("ID\tLEXEME\tTOKEN\tCATEGORY\tVALUE\tLENGTH\tFIRST_LINE\tFIRST_COLUMN\tOCCURRENCES\n", out);
     for (size_t i = 0; i < r->symbol_count; i++) {
         const CfSymbol *s = &r->symbols[i];
         fprintf(out, "%zu\t", i + 1);
         escaped(out, s->lexeme, strlen(s->lexeme));
-        fprintf(out, "\t%s\t%s\t%zu\t%zu\t%zu\n", cf_token_name(s->type),
-                s->fixed ? "FIXED" : "IDENTIFIER", s->line, s->column, s->occurrences);
+        fprintf(out, "\t%s\t%s\t", public_name(s->type), category(s->type));
+        if (s->value) escaped(out, s->value, strlen(s->value));
+        else fputc('-', out);
+        fprintf(out, "\t%zu\t%zu\t%zu\t%zu\n", s->length, s->line, s->column, s->occurrences);
     }
     return ferror(out) ? 2 : 0;
 }
-int cf_write_report(FILE *out, const char *source, const CfResult *r)
+int cf_write_table(FILE *out, const char *source, const CfResult *r)
 {
     fputs("TOKEN TYPE\tLEXEME\n", out);
     for (size_t i = 0; i < r->report_count; i++) {
         const CfToken *t = &r->report[i];
-        const char *name;
-        switch (t->type) {
-        case CF_IDENT: name = "IDENTIFIER"; break;
-        case CF_INT: name = "INT_LITERAL"; break;
-        case CF_DECIMAL: name = "DECIMAL_LITERAL"; break;
-        case CF_CHAR: name = "CHAR_LITERAL"; break;
-        case CF_STRING: name = "STRING_LITERAL"; break;
-        case CF_BOOL: name = "BOOL_LITERAL"; break;
-        case CF_NOISE: name = "NOISE_WORD"; break;
-        default: name = cf_token_name(t->type); break;
-        }
-        fprintf(out, "%s\t", name);
+        fprintf(out, "%s\t", public_name(t->type));
         escaped(out, source + t->offset, t->length);
         fputc('\n', out);
     }
     return ferror(out) ? 2 : 0;
 }
+static char *size_text(size_t value)
+{
+    char text[32];
+    snprintf(text, sizeof(text), "%zu", value);
+    return copy_text(text, strlen(text));
+}
+static void pad(FILE *out, size_t width, char c)
+{
+    for (size_t i = 0; i < width; i++) fputc(c, out);
+}
+static char **cells_new(size_t rows, size_t columns)
+{
+    if (rows > SIZE_MAX / columns) exit(2);
+    return resize(NULL, rows ? rows * columns : 1, sizeof(char *));
+}
+static void print_table(FILE *out, const char **headers, char **cells, size_t rows, size_t columns)
+{
+    size_t *widths = resize(NULL, columns, sizeof(size_t));
+    for (size_t c = 0; c < columns; c++) widths[c] = strlen(headers[c]);
+    for (size_t i = 0; i < rows * columns; i++) {
+        size_t width = scalar_count(cells[i], strlen(cells[i]));
+        if (width > widths[i % columns]) widths[i % columns] = width;
+    }
+    for (size_t c = 0; c < columns; c++) {
+        fputs(headers[c], out);
+        if (c + 1 < columns) { pad(out, widths[c] - strlen(headers[c]), ' '); fputs("  ", out); }
+    }
+    fputc('\n', out);
+    for (size_t c = 0; c < columns; c++) {
+        pad(out, widths[c], '-'); if (c + 1 < columns) fputs("  ", out);
+    }
+    fputc('\n', out);
+    if (!rows) fputs("(none)\n", out);
+    for (size_t row = 0; row < rows; row++) {
+        for (size_t c = 0; c < columns; c++) {
+            char *text = cells[row * columns + c];
+            fputs(text, out);
+            if (c + 1 < columns) { pad(out, widths[c] - scalar_count(text, strlen(text)), ' '); fputs("  ", out); }
+            free(text);
+        }
+        fputc('\n', out);
+    }
+    free(cells); free(widths);
+}
+int cf_write_report(FILE *out, const char *source, const char *source_name, const CfResult *r)
+{
+    fputs("======================================================================\n"
+          "                        CLARIFIX SYMBOL TABLE\n"
+          "======================================================================\nSource file : ", out);
+    escaped(out, source_name, strlen(source_name));
+    fputs("\n----------------------------------------------------------------------\n\n"
+          "[A] TOKEN LIST (in order of appearance)\n", out);
+    const char *a_headers[] = {"No.", "Line", "Col", "Lexeme", "Token Type", "Category"};
+    char **cells = cells_new(r->report_count, 6);
+    /* Category counts: identifiers, keywords, noise, constants, delimiters, comments, operators. */
+    size_t counts[7] = {0};
+    for (size_t i = 0; i < r->report_count; i++) {
+        const CfToken *t = &r->report[i];
+        size_t j = i * 6;
+        cells[j] = size_text(i + 1); cells[j + 1] = size_text(t->line); cells[j + 2] = size_text(t->column);
+        cells[j + 3] = escaped_text(source + t->offset, t->length);
+        cells[j + 4] = copy_text(public_name(t->type), strlen(public_name(t->type)));
+        cells[j + 5] = copy_text(category(t->type), strlen(category(t->type)));
+        size_t group = t->type == CF_IDENT ? 0 :
+                       t->type >= CF_SET && t->type <= CF_CONTINUE ? 1 :
+                       t->type == CF_NOISE ? 2 :
+                       t->type >= CF_INT && t->type <= CF_BOOL ? 3 :
+                       t->type >= CF_LPAREN && t->type <= CF_COLON ? 4 :
+                       t->type == CF_LINE_COMMENT || t->type == CF_BLOCK_COMMENT ? 5 : 6;
+        counts[group]++;
+    }
+    print_table(out, a_headers, cells, r->report_count, 6);
+    fputs("\n[B] SYMBOL TABLE (unique identifiers and constants)\n", out);
+    const char *b_headers[] = {"ID", "Lexeme", "Token Type", "Value", "Length", "First Seen"};
+    cells = cells_new(r->symbol_count, 6);
+    for (size_t i = 0; i < r->symbol_count; i++) {
+        const CfSymbol *s = &r->symbols[i];
+        size_t j = i * 6;
+        cells[j] = size_text(i + 1); cells[j + 1] = escaped_text(s->lexeme, strlen(s->lexeme));
+        cells[j + 2] = copy_text(public_name(s->type), strlen(public_name(s->type)));
+        char *value = s->value ? escaped_text(s->value, strlen(s->value)) : copy_text("-", 1);
+        if (s->type == CF_CHAR || s->type == CF_STRING) {
+            size_t n = strlen(value);
+            cells[j + 3] = resize(NULL, n + 3, 1);
+            char quote = s->type == CF_CHAR ? '\'' : '"';
+            cells[j + 3][0] = quote; memcpy(cells[j + 3] + 1, value, n);
+            cells[j + 3][n + 1] = quote; cells[j + 3][n + 2] = '\0'; free(value);
+        } else cells[j + 3] = value;
+        cells[j + 4] = size_text(s->length);
+        char first[70]; snprintf(first, sizeof(first), "%zu:%zu", s->line, s->column);
+        cells[j + 5] = copy_text(first, strlen(first));
+    }
+    print_table(out, b_headers, cells, r->symbol_count, 6);
+    fputs("\n[C] INVALID / UNRECOGNIZED TOKENS\n", out);
+    const char *c_headers[] = {"Line", "Col", "Lexeme", "Error", "Reason"};
+    cells = cells_new(r->invalid_count, 5);
+    for (size_t i = 0; i < r->invalid_count; i++) {
+        const CfInvalid *invalid = &r->invalid[i];
+        size_t j = i * 5;
+        cells[j] = size_text(invalid->line); cells[j + 1] = size_text(invalid->column);
+        cells[j + 2] = escaped_text(source + invalid->offset, invalid->length);
+        char code[32]; snprintf(code, sizeof(code), "E%d", invalid->code);
+        cells[j + 3] = copy_text(code, strlen(code));
+        cells[j + 4] = copy_text(invalid->reason, strlen(invalid->reason));
+    }
+    print_table(out, c_headers, cells, r->invalid_count, 5);
+    fprintf(out, "\n[D] SUMMARY\nIdentifiers: %zu | Keywords: %zu | Noise words: %zu | Constants: %zu\n"
+            "Delimiters: %zu | Comments: %zu | Operators: %zu | Invalid: %zu | Total tokens: %zu\n"
+            "======================================================================\n",
+            counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6], r->invalid_count, r->report_count);
+    return ferror(out) ? 2 : 0;
+}
 void cf_free(CfResult *r)
 {
-    for (size_t i = 0; i < r->symbol_count; i++) free(r->symbols[i].lexeme);
-    free(r->symbols); free(r->tokens); free(r->report);
+    for (size_t i = 0; i < r->symbol_count; i++) { free(r->symbols[i].lexeme); free(r->symbols[i].value); }
+    free(r->symbols); free(r->tokens); free(r->report); free(r->invalid);
     memset(r, 0, sizeof(*r));
 }

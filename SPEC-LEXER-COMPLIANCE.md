@@ -1,5 +1,7 @@
 # ClariFix lexical analyzer compliance specification
 
+Historical specification. Storage/report requirements are superseded by [SPEC-UPDATED-PAPER-ALIGNMENT.md](SPEC-UPDATED-PAPER-ALIGNMENT.md), based on the updated paper.
+
 Status: local implementation and package validation complete; course hand-in pending
 
 ## Objective
