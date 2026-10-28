@@ -1,96 +1,98 @@
-# ClariFix
+# ClariFix Lexical Analyzer
 
-A handwritten C11 lexical analyzer for ClariFix `.clx` files. It recognizes tokens, builds a symbol table, and reports lexical errors. Existing `.clf` files are also supported.
+ClariFix reads your code, identifies tokens, and reports lexical errors. Use `.clx` files for new programs; existing `.clf` examples also work.
 
-This project covers lexical analysis; parsing and program execution belong to later phases.
+This is a lexical analyzer. Running a file shows its tokens and errors; executing the program is a later phase.
 
-## Requirements
+## Basic running
 
-- GCC or Clang with C11 support.
-- Python 3 for tests and batch report generation.
+Open the **PPL folder** in VS Code, then select **Terminal > New Terminal**. Use PowerShell for the commands below.
 
-## Quick start
-
-Run these commands from the project folder in PowerShell:
+### 1. Build the analyzer
 
 ```powershell
-.\build.ps1 -Test
+.\build.ps1
+```
+
+Wait for `Built build\clarifix.exe`. GCC or Clang must be installed.
+
+### 2. Run an example
+
+```powershell
+.\build\clarifix.exe examples\sample.clx
+```
+
+Tokens and diagnostics appear directly in the terminal. Look for `0 error(s)` in the summary for a successful analysis.
+
+### 3. Try another example
+
+```powershell
+.\build\clarifix.exe examples\average.clf
+```
+
+Build once, then run as many source files as you want. Rebuild when you change the C source files; editing a `.clx` file only requires saving it and running the analyzer again.
+
+## Create your own example
+
+In VS Code, right-click the **examples** folder, select **New File**, and name it **my-program.clx**.
+
+Write this code and save the file:
+
+```text
+set name to "Marc".
+set age to 20.
+show name.
+show age.
+```
+
+Run it:
+
+```powershell
+.\build\clarifix.exe examples\my-program.clx
+```
+
+Use straight quotes and end simple statements with a period. Default blocks use four-space indentation.
+
+## Included examples
+
+| File in `examples/` | Purpose |
+| --- | --- |
+| `sample.clx` | Short sample from the paper. |
+| `average.clf` | Class-average program. |
+| `features.clf` | Literals, operators, and noise words. |
+| `checklist.clf` | Required token categories. |
+| `errors.clf` | Five intentional lexical errors. |
+| `braces.clf` | Explicit blocks; run with `--braces`. |
+
+For the braces example:
+
+```powershell
+.\build\clarifix.exe --braces examples\braces.clf
+```
+
+## Optional: save a Symbol Table report
+
+Run these commands in order. The first creates the report; the second displays it:
+
+```powershell
 .\build\clarifix.exe --report build\sample-report.txt examples\sample.clx
 Get-Content build\sample-report.txt
 ```
 
-The first command builds the analyzer and runs all 38 tests. The sample produces nine source-token rows and two symbols: `total` and `10`.
+The report contains the token list, unique symbols, invalid tokens, and category summary. Use a **new report filename each time** because existing files are protected against overwriting. Reports after lexical errors are partial.
 
-**Use a new output filename each time.** Existing files are protected against overwriting.
+## Optional: run the automated tests
 
-If the compiler cannot be found, provide its location:
-
-```powershell
-.\build.ps1 -Compiler C:\path\to\gcc.exe -Test
-```
-
-## Example code
-
-Save your code in a `.clx` file:
-
-```text
-# Class score
-set name to "Marc".
-set score to 90.
-show name.
-show score.
-```
-
-Analyze it by replacing `examples\sample.clx` in the quick-start command with your file's path.
-
-## Output options
-
-| Option | Output |
-| --- | --- |
-| `--report FILE` | Four-section report: token list, unique symbols, invalid tokens, and category summary. |
-| `--symbols FILE` | Symbol attributes as TSV. |
-| `--table FILE` | Two-column token type and lexeme TSV. |
-| `--tokens FILE` | Detailed tokens with locations and symbol IDs. Defaults to the terminal. |
-| `--braces` | Use explicit `{ }` blocks instead of indentation. |
-
-Diagnostics appear in the terminal. Exit codes are `0` for success, `1` for lexical errors, and `2` for usage or I/O failures. Output after a lexical error is partial.
-
-## Included examples
-
-| File | Purpose |
-| --- | --- |
-| `sample.clx` | Sample from the paper. |
-| `average.clf` | Class-average program. |
-| `features.clf` | Literals, operators, and noise words. |
-| `braces.clf` | Explicit blocks; requires `--braces`. |
-| `errors.clf` | Five intentional lexical errors. |
-| `checklist.clf` | Coverage of the required token categories. |
-
-Generate reports for all examples in a fresh directory:
+Python 3 is required for tests:
 
 ```powershell
-.\build.ps1 -Examples -OutputDirectory build\example-reports
+.\build.ps1 -Test
 ```
 
-## Language rules
+All 38 tests should pass. The `errors.clf` example is expected to report five errors.
 
-- Identifiers are case-sensitive, start with an ASCII letter or underscore, and have a maximum length of 32 characters.
-- Constants include integers, decimals, characters, strings, and Booleans. Arrays are recognized through their brackets and elements.
-- Use straight quotes for literals. Supported escapes are `\n`, `\"`, `\'`, and `\\`.
-- Comments use `#` or non-nesting `/* ... */`. The `//` operator means floor division.
-- Default blocks use four-space indentation. Select `--braces` for free-field blocks.
-- Noise words are `to`, `the`, `of`, and `then`. Simple statements end with a period.
+For more command options:
 
-Recognition uses character automata. Unique identifiers and constants are stored in a manual djb2 hash table with 211 buckets and separate chaining. Reports retain original spellings, converted constant values, and source locations.
-
-## Direct compilation
-
-On Linux/macOS, or without the PowerShell script:
-
-```sh
-gcc -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 main.c lexer.c -o clarifix
-python3 tests/test_lexer.py ./clarifix
-./clarifix --report sample-report.txt examples/sample.clx
+```powershell
+.\build\clarifix.exe --help
 ```
-
-Windows is the verified environment. For coursework hand-in, see the [submission checklist](submission/CHECKLIST.md). The [published release](https://github.com/mrccastillo/clarifix-lexer/releases/tag/paper-alignment-2) contains the original verified ZIP and paper PDFs.
