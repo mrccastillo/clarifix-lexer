@@ -8,7 +8,7 @@ static void usage(FILE *out)
     fputs("ClariFix lexical analyzer\n"
           "Usage: clarifix [--braces] [--report FILE] [--table FILE] [--tokens FILE] [--symbols FILE] SOURCE.clx\n"
           "       clarifix --help\n\n"
-          "Default: four-space indentation and token output on stdout.\n"
+          "Default: four-space indentation and a token table on stdout.\n"
           "--braces       Use { } blocks; ignore indentation and newlines.\n"
           "--tokens FILE  Write token TSV to FILE instead of stdout.\n"
           "--symbols FILE Write unique identifiers/constants and attributes as TSV.\n"
@@ -65,7 +65,8 @@ static int write_output(const char *path, int symbols, const char *source,
     if (!out) { perror(path); return 2; }
     int status = symbols == 3 ? cf_write_table(out, source, r) :
                  symbols == 2 ? cf_write_report(out, source, source_name, r) :
-                 symbols == 1 ? cf_write_symbols(out, r) : cf_write_tokens(out, source, r);
+                 symbols == 1 ? cf_write_symbols(out, r) :
+                 path ? cf_write_tokens(out, source, r) : cf_write_token_table(out, source, r);
     if (path) { if (fclose(out) != 0) status = 2; }
     else if (fflush(out) != 0) status = 2;
     if (status) fprintf(stderr, "Could not write %s.\n", path ? path : "stdout");

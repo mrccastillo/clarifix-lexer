@@ -22,7 +22,7 @@ Wait for the `Built` message. The executable is saved in `bin/`.
 | Windows | `.\lex.ps1 sample` |
 | Mac / Linux | `./lex sample` |
 
-Tokens and errors appear directly in the terminal. Look for `0 error(s)` in the summary for a successful analysis.
+Tokens appear in an aligned, bordered table in the terminal, followed by the lexical-analysis summary. Look for `0 error(s)` for a successful analysis. Errors are also displayed in the terminal.
 
 Pass the example name without the folder or extension: use `average` for `examples/average.clx`. Full file paths also work. To analyze another example, replace `sample` with its name. Build once, then run as many source files as you want. Rebuild after changing the C files; after editing a `.clx` file, save it and run the analyzer again.
 
@@ -94,7 +94,7 @@ Python 3 is required for automated tests, but not for building the analyzer or s
 | Windows | `.\build.ps1 -Test` |
 | Mac / Linux | `./build --test` |
 
-If your PowerShell shortcut is configured, `build -Test` also works. All 38 tests should pass.
+If your PowerShell shortcut is configured, `build -Test` also works. All 39 tests should pass.
 
 ## Generated files
 

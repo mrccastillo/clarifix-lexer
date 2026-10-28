@@ -68,6 +68,7 @@ const char *cf_token_name(CfTokenType type);
 int cf_lex(const char *source, size_t length, int braces,
            FILE *diagnostics, CfResult *result);
 int cf_write_tokens(FILE *out, const char *source, const CfResult *result);
+int cf_write_token_table(FILE *out, const char *source, const CfResult *result);
 int cf_write_symbols(FILE *out, const CfResult *result);
 int cf_write_report(FILE *out, const char *source, const char *source_name, const CfResult *result);
 int cf_write_table(FILE *out, const char *source, const CfResult *result);

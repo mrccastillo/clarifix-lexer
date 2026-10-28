@@ -11,7 +11,7 @@ The ZIP's `MANIFEST.sha256` identifies every payload file; its adjacent `.zip.sh
 - [x] Unique identifiers/constants, converted values, categories, lengths, and first locations.
 - [x] Four-section report with invalid-token records and category summary.
 - [x] Page-20 sample: nine source occurrences, exactly two symbols (`total`, `10`).
-- [x] All 38 tests and six example runs pass.
+- [x] All 39 tests and six example runs pass.
 - [x] Updated paper and alignment addendum archived in the original release and Git history.
 - [x] Printable addendum rendered and inspected.
 - [x] Final ZIP rebuilt from a clean extraction and report samples verified.

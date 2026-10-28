@@ -723,7 +723,13 @@ static char **cells_new(size_t rows, size_t columns)
     if (rows > SIZE_MAX / columns) exit(2);
     return resize(NULL, rows ? rows * columns : 1, sizeof(char *));
 }
-static void print_table(FILE *out, const char **headers, char **cells, size_t rows, size_t columns)
+static void grid_rule(FILE *out, const size_t *widths, size_t columns)
+{
+    for (size_t c = 0; c < columns; c++) { fputc('+', out); pad(out, widths[c] + 2, '-'); }
+    fputs("+\n", out);
+}
+static void print_table(FILE *out, const char **headers, char **cells, size_t rows, size_t columns,
+                        int bordered)
 {
     size_t *widths = resize(NULL, columns, sizeof(size_t));
     for (size_t c = 0; c < columns; c++) widths[c] = strlen(headers[c]);
@@ -731,26 +737,53 @@ static void print_table(FILE *out, const char **headers, char **cells, size_t ro
         size_t width = scalar_count(cells[i], strlen(cells[i]));
         if (width > widths[i % columns]) widths[i % columns] = width;
     }
+    if (bordered) { grid_rule(out, widths, columns); fputs("| ", out); }
     for (size_t c = 0; c < columns; c++) {
         fputs(headers[c], out);
-        if (c + 1 < columns) { pad(out, widths[c] - strlen(headers[c]), ' '); fputs("  ", out); }
+        if (bordered) {
+            pad(out, widths[c] - strlen(headers[c]), ' ');
+            fputs(c + 1 < columns ? " | " : " |", out);
+        } else if (c + 1 < columns) { pad(out, widths[c] - strlen(headers[c]), ' '); fputs("  ", out); }
     }
     fputc('\n', out);
-    for (size_t c = 0; c < columns; c++) {
-        pad(out, widths[c], '-'); if (c + 1 < columns) fputs("  ", out);
+    if (bordered) grid_rule(out, widths, columns);
+    else {
+        for (size_t c = 0; c < columns; c++) {
+            pad(out, widths[c], '-'); if (c + 1 < columns) fputs("  ", out);
+        }
+        fputc('\n', out);
     }
-    fputc('\n', out);
     if (!rows) fputs("(none)\n", out);
     for (size_t row = 0; row < rows; row++) {
+        if (bordered) fputs("| ", out);
         for (size_t c = 0; c < columns; c++) {
             char *text = cells[row * columns + c];
             fputs(text, out);
-            if (c + 1 < columns) { pad(out, widths[c] - scalar_count(text, strlen(text)), ' '); fputs("  ", out); }
+            if (bordered) {
+                pad(out, widths[c] - scalar_count(text, strlen(text)), ' ');
+                fputs(c + 1 < columns ? " | " : " |", out);
+            } else if (c + 1 < columns) { pad(out, widths[c] - scalar_count(text, strlen(text)), ' '); fputs("  ", out); }
             free(text);
         }
         fputc('\n', out);
     }
+    if (bordered) grid_rule(out, widths, columns);
     free(cells); free(widths);
+}
+int cf_write_token_table(FILE *out, const char *source, const CfResult *r)
+{
+    const char *headers[] = {"LINE", "COLUMN", "TOKEN", "LEXEME", "SYMBOL_ID"};
+    char **cells = cells_new(r->token_count, 5);
+    for (size_t i = 0; i < r->token_count; i++) {
+        const CfToken *t = &r->tokens[i];
+        size_t j = i * 5;
+        cells[j] = size_text(t->line); cells[j + 1] = size_text(t->column);
+        cells[j + 2] = copy_text(cf_token_name(t->type), strlen(cf_token_name(t->type)));
+        cells[j + 3] = escaped_text(source + t->offset, t->length);
+        cells[j + 4] = size_text(t->symbol);
+    }
+    print_table(out, headers, cells, r->token_count, 5, 1);
+    return ferror(out) ? 2 : 0;
 }
 int cf_write_report(FILE *out, const char *source, const char *source_name, const CfResult *r)
 {
@@ -779,7 +812,7 @@ int cf_write_report(FILE *out, const char *source, const char *source_name, cons
                        t->type == CF_LINE_COMMENT || t->type == CF_BLOCK_COMMENT ? 5 : 6;
         counts[group]++;
     }
-    print_table(out, a_headers, cells, r->report_count, 6);
+    print_table(out, a_headers, cells, r->report_count, 6, 0);
     fputs("\n[B] SYMBOL TABLE (unique identifiers and constants)\n", out);
     const char *b_headers[] = {"ID", "Lexeme", "Token Type", "Value", "Length", "First Seen"};
     cells = cells_new(r->symbol_count, 6);
@@ -800,7 +833,7 @@ int cf_write_report(FILE *out, const char *source, const char *source_name, cons
         char first[70]; snprintf(first, sizeof(first), "%zu:%zu", s->line, s->column);
         cells[j + 5] = copy_text(first, strlen(first));
     }
-    print_table(out, b_headers, cells, r->symbol_count, 6);
+    print_table(out, b_headers, cells, r->symbol_count, 6, 0);
     fputs("\n[C] INVALID / UNRECOGNIZED TOKENS\n", out);
     const char *c_headers[] = {"Line", "Col", "Lexeme", "Error", "Reason"};
     cells = cells_new(r->invalid_count, 5);
@@ -813,7 +846,7 @@ int cf_write_report(FILE *out, const char *source, const char *source_name, cons
         cells[j + 3] = copy_text(code, strlen(code));
         cells[j + 4] = copy_text(invalid->reason, strlen(invalid->reason));
     }
-    print_table(out, c_headers, cells, r->invalid_count, 5);
+    print_table(out, c_headers, cells, r->invalid_count, 5, 0);
     fprintf(out, "\n[D] SUMMARY\nIdentifiers: %zu | Keywords: %zu | Noise words: %zu | Constants: %zu\n"
             "Delimiters: %zu | Comments: %zu | Operators: %zu | Invalid: %zu | Total tokens: %zu\n"
             "======================================================================\n",
