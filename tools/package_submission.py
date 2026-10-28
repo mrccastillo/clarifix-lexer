@@ -1,6 +1,6 @@
 """Create a source-only release ZIP with an explicit SHA-256 manifest.
 
-Run after building, generating submission/reports, and rendering the proposal.
+Run after building and generating submission/reports.
 No publication or upload is performed. Output directory must be new.
 """
 import argparse
@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ZIP_NAME = 'clarifix-paper-alignment-2.zip'
 ROOT_FILES = ['README.md', 'SPEC-UPDATED-PAPER-ALIGNMENT.md', '.gitignore', 'Makefile',
               'build.ps1', 'main.c', 'lexer.c', 'lexer.h']
-DIRECTORIES = ['docs', 'examples', 'tests', 'tools', 'submission']
+DIRECTORIES = ['examples', 'tests', 'tools', 'submission']
 
 
 def payload():
@@ -33,8 +33,7 @@ def main():
     if destination.exists():
         parser.error('Output directory must not already exist.')
     files = payload()
-    required = [ROOT / 'docs/ClariFix-Updated-Paper.pdf', ROOT / 'docs/ClariFix-Revised-Proposal.pdf', ROOT / 'docs/validation.md',
-                ROOT / 'submission/CHECKLIST.md']
+    required = [ROOT / 'submission/CHECKLIST.md']
     required += [ROOT / f'submission/reports/{name}-symbol-table.txt'
                  for name in ('sample', 'average', 'features', 'braces', 'errors', 'checklist')]
     for path in files + required:

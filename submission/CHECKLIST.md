@@ -12,7 +12,7 @@ The ZIP's `MANIFEST.sha256` identifies every payload file; its adjacent `.zip.sh
 - [x] Four-section report with invalid-token records and category summary.
 - [x] Page-20 sample: nine source occurrences, exactly two symbols (`total`, `10`).
 - [x] All 38 tests and six example runs pass.
-- [x] Updated paper copied unchanged and alignment addendum generated.
+- [x] Updated paper and alignment addendum archived in the original release and Git history.
 - [x] Printable addendum rendered and inspected.
 - [x] Final ZIP rebuilt from a clean extraction and report samples verified.
 - [x] Updated source and matching release assets published under `paper-alignment-2`.
@@ -24,7 +24,7 @@ The ZIP's `MANIFEST.sha256` identifies every payload file; its adjacent `.zip.sh
 - [ ] Confirm the calendar deadline and timezone; the supplied guideline only says Thursday 11:59 PM.
 - [ ] Confirm the central submission destination from the instructor's announcement.
 - [ ] Submit the tested ZIP and actual repository link; retain the receipt.
-- [ ] Print `docs/ClariFix-Updated-Paper.pdf` and `docs/ClariFix-Revised-Proposal.pdf` (alignment addendum).
+- [ ] Download and print the updated paper and addendum from the [alignment release](https://github.com/mrccastillo/clarifix-lexer/releases/tag/paper-alignment-2).
 - [ ] Prepare the group index card for checking day.
 
 The invalid example's report is deliberately partial; review it with its diagnostics. Successful lexical analysis is not program execution.

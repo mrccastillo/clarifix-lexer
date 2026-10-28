@@ -1,6 +1,6 @@
 # Updated-paper alignment specification
 
-Source of truth: `docs/ClariFix-Updated-Paper.pdf`, especially pages 18–20 and the embedded page-20 sample. It is the unchanged paper originally supplied as `Group 4 - PPL Draft Proposal (1).pdf`. This specification supersedes the earlier compliance spec, retained in Git history and the historical release.
+Source of truth: the updated Group 4 paper originally supplied as `Group 4 - PPL Draft Proposal (1).pdf`, especially pages 18-20 and the embedded page-20 sample. The unchanged PDF remains in Git history and the `paper-alignment-2` GitHub release. Its local documentation copies were removed at the user's request.
 
 ## Required behavior
 
@@ -40,7 +40,7 @@ Source of truth: `docs/ClariFix-Updated-Paper.pdf`, especially pages 18–20 and
 
 ## Documentation and publication
 
-Keep the updated paper unchanged and include it as `docs/ClariFix-Updated-Paper.pdf` in the repository/package. Update README, automata notes, report-format documentation, alignment addendum PDF, validation evidence, and submission checklist. Mark previous documentation as superseded where necessary. Publish a new `paper-alignment-2` tag/release; retain the original release as historical. Include the source-only ZIP, checksum, authoritative paper, and readable alignment addendum. No course hand-in or change of repository visibility is implied.
+The initial `paper-alignment-2` release includes the authoritative paper, alignment addendum, and validation records. Following the user's documentation-cleanup request, the current tree and newly generated packages exclude those documentation files and their PDF renderer. Keep source, this specification, tests, examples, and report samples. Historical release assets remain unchanged. No course hand-in or visibility change is implied.
 
 ## Completion
 
