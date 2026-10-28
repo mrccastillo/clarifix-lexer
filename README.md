@@ -1,46 +1,34 @@
 # ClariFix Lexical Analyzer
 
-ClariFix reads your code, identifies tokens, and reports lexical errors. Save your programs with the `.clx` extension.
+ClariFix reads `.clx` source files, identifies tokens, builds a symbol table, and reports lexical errors. It analyzes the code; program execution is a later phase.
 
-This is a lexical analyzer. Running a file shows its tokens and errors; executing the program is a later phase.
+## 1. Build
 
-## Basic running
-
-Open the **PPL folder** in VS Code, then select **Terminal > New Terminal**. GCC or Clang must be installed.
-
-### 1. Build the analyzer
+Open the **PPL folder** in VS Code, then select **Terminal > New Terminal**. A C11 compiler such as GCC or Clang must be installed.
 
 | System | Command |
 | --- | --- |
-| Windows (PowerShell) | `.\build.ps1` |
+| Windows PowerShell | `.\build.ps1` |
 | Mac / Linux | `./build` |
 
-Wait for the `Built` message. The executable is created in `bin/`.
+Wait for the `Built` message. The executable is saved in `bin/`.
 
-### 2. Run an example
+**PowerShell shortcut:** if you have configured the local shortcut, you can type `build`. This shortcut is specific to your computer; the commands above work directly from the project.
+
+## 2. Run an example
 
 | System | Command |
 | --- | --- |
 | Windows | `.\bin\clarifix.exe examples\sample.clx` |
 | Mac / Linux | `./bin/clarifix examples/sample.clx` |
 
-Tokens and diagnostics appear directly in the terminal. Look for `0 error(s)` in the summary for a successful analysis.
+Tokens and errors appear directly in the terminal. Look for `0 error(s)` in the summary for a successful analysis.
 
-### 3. Try another example
+To analyze another example, replace `sample.clx` with its filename. Build once, then run as many source files as you want. Rebuild after changing the C files; after editing a `.clx` file, save it and run the analyzer again.
 
-```powershell
-.\bin\clarifix.exe examples\average.clx
-```
+## 3. Create your own example
 
-On Mac/Linux, use `./bin/clarifix examples/average.clx`.
-
-Build once, then run as many source files as you want. Rebuild when you change the C source files; editing a `.clx` file only requires saving it and running the analyzer again. The commands below use Windows PowerShell; on Mac/Linux use `./bin/clarifix` and forward slashes in paths.
-
-## Create your own example
-
-In VS Code, right-click the **examples** folder, select **New File**, and name it **my-program.clx**.
-
-Write this code and save the file:
+In VS Code, right-click **examples**, select **New File**, and name it **my-program.clx**. Add this code and save:
 
 ```text
 set name to "Marc".
@@ -49,13 +37,14 @@ show name.
 show age.
 ```
 
-Run it:
+Then run it:
 
-```powershell
-.\bin\clarifix.exe examples\my-program.clx
-```
+| System | Command |
+| --- | --- |
+| Windows | `.\bin\clarifix.exe examples\my-program.clx` |
+| Mac / Linux | `./bin/clarifix examples/my-program.clx` |
 
-Use straight quotes and end simple statements with a period. Default blocks use four-space indentation.
+Use straight quotes, end simple statements with a period, and use four spaces for indentation.
 
 ## Included examples
 
@@ -66,9 +55,9 @@ Use straight quotes and end simple statements with a period. Default blocks use 
 | `features.clx` | Literals, operators, and noise words. |
 | `checklist.clx` | Required token categories. |
 | `errors.clx` | Five intentional lexical errors. |
-| `braces.clx` | Explicit blocks; run with `--braces`. |
+| `braces.clx` | Explicit blocks; add `--braces` when running. |
 
-For the braces example:
+For example, on Windows:
 
 ```powershell
 .\bin\clarifix.exe --braces examples\braces.clx
@@ -76,35 +65,41 @@ For the braces example:
 
 ## Optional: save a Symbol Table report
 
-Run these commands in order. The first creates the report; the second displays it:
+A normal build or run does not save a report. Add `--report` when you want one, then open the file after it has been created.
+
+Windows:
 
 ```powershell
 .\bin\clarifix.exe --report bin\sample-report.txt examples\sample.clx
 Get-Content bin\sample-report.txt
 ```
 
-The report contains the token list, unique symbols, invalid tokens, and category summary. Use a **new report filename each time** because existing files are protected against overwriting. Reports after lexical errors are partial.
-
-## Optional: run the automated tests
-
-Python 3 is required for tests:
-
-```powershell
-.\build.ps1 -Test
-```
-
-On Mac/Linux:
+Mac / Linux:
 
 ```sh
-./build --test
+./bin/clarifix --report bin/sample-report.txt examples/sample.clx
+cat bin/sample-report.txt
 ```
 
-The shell script automatically finds `cc`, `clang`, or `gcc`. To choose a compiler, use `CC=clang ./build`. Python 3 is only needed when running tests or generating reports.
+The report contains four sections: token list, unique symbols, invalid tokens, and summary. The filename is your choice; `submission-symbol-table.txt` is not a required name.
 
-All 38 tests should pass. The `errors.clx` example is expected to report five errors.
+Use a **new report filename each time**, or delete the previous report before reusing its name. Existing files are protected against overwriting. Reports after lexical errors are partial.
 
-For more command options:
+## Optional: run the tests
 
-```powershell
-.\bin\clarifix.exe --help
-```
+Python 3 is required for automated tests, but not for building the analyzer or saving a report with `--report`.
+
+| System | Command |
+| --- | --- |
+| Windows | `.\build.ps1 -Test` |
+| Mac / Linux | `./build --test` |
+
+If your PowerShell shortcut is configured, `build -Test` also works. All 38 tests should pass.
+
+## Generated files
+
+- `bin/clarifix.exe` on Windows, or `bin/clarifix` on Mac/Linux, is created by building. Delete it whenever needed and rebuild to restore it.
+- Report files are created when explicitly requested. You can delete them and generate new ones later. Batch reports can also be requested through `build.ps1 -Examples` with a fresh `-OutputDirectory`; that optional helper requires Python 3.
+- Builds do not generate a release ZIP or a `paper-release` folder.
+
+For all analyzer options, run `.\bin\clarifix.exe --help` on Windows or `./bin/clarifix --help` on Mac/Linux.
