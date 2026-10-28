@@ -6,7 +6,7 @@ The analyzer recognizes source lexemes using character automata, stores unique i
 
 ## Build and run
 
-Use desktop GCC or Clang with C11 support. Python 3 is needed for tests, report-generation scripts, and packaging; it does not tokenize source.
+Use desktop GCC or Clang with C11 support. Python 3 is needed for tests and report generation; it does not tokenize source.
 
 Windows PowerShell:
 
@@ -36,7 +36,8 @@ python tests\test_lexer.py .\clarifix.exe
 Linux/macOS:
 
 ```sh
-make test
+gcc -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 main.c lexer.c -o clarifix
+python3 tests/test_lexer.py ./clarifix
 ./clarifix --report sample-report.txt examples/sample.clx
 ```
 
@@ -101,11 +102,10 @@ Exit codes: 0 lexical success, 1 lexical errors, 2 usage/memory/I/O failure. Mis
 
 ```powershell
 .\build.ps1 -Test
-python tools\package_submission.py --output build\paper-release
-python tools\verify_submission.py build\paper-release\clarifix-paper-alignment-2.zip
+.\build.ps1 -Examples -OutputDirectory build\fresh-reports
 ```
 
-Use a fresh directory for packaging. Build the analyzer first. The packager generates fresh reports in a temporary directory and includes them in the ZIP with sources, the current specification, tests, and examples. No saved reports are required in the repository. Binaries, caches, and temporary logs are excluded. The manifest identifies every payload file. Verification rebuilds in a fresh temporary directory, runs the full suite and all six examples, and compares regenerated reports against packaged samples.
+Create the submission ZIP manually. Include the C sources and header, `build.ps1`, README, current specification, examples, tests, `tools/generate_samples.py`, and generated reports. Exclude compiled binaries, caches, and temporary logs. Choose a fresh report directory for each run. To check the ZIP, extract it into a new folder and run `.\build.ps1 -Test` there; generate the examples again and confirm their expected results. The original published release remains available with its verified archive and checksum.
 
 Report samples are generated with `tools/generate_samples.py` or `build.ps1 -Examples`; report, parser-token, two-column, unique-symbol, diagnostic, and JSON-summary outputs are produced together.
 
