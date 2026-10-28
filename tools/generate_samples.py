@@ -29,8 +29,7 @@ def main():
                    '--table', str(table), '--symbols', str(symbols)]
         if name == 'braces':
             command.append('--braces')
-        extension = 'clx' if name == 'sample' else 'clf'
-        command.append(str(ROOT / f'examples/{name}.{extension}'))
+        command.append(str(ROOT / f'examples/{name}.clx'))
         result = subprocess.run(command, capture_output=True, timeout=10)
         (destination / f'{name}-diagnostics.txt').write_bytes(result.stderr)
         expected = 1 if name == 'errors' else 0
@@ -50,7 +49,7 @@ def main():
         token_count, symbol_count, errors = map(int, match.groups())
         if errors != (5 if name == 'errors' else 0):
             raise ValueError(f'{name}: unexpected error count')
-        summaries.append(dict(source=f'examples/{name}.{extension}', braces=name == 'braces',
+        summaries.append(dict(source=f'examples/{name}.clx', braces=name == 'braces',
                               exit_status=result.returncode, tokens=token_count,
                               symbols=symbol_count, report_rows=len(rows) - 1, errors=errors))
         print(f'{name}: exit {result.returncode}; {token_count} tokens; {len(rows) - 1} report rows; {errors} errors')

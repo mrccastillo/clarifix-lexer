@@ -32,7 +32,7 @@ class LexerTests(unittest.TestCase):
                 tokens = list(csv.DictReader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
             return p.returncode, text, entries, tokens, p.stderr.decode('utf-8')
 
-    def scan(self, source, *options, suffix='.clf'):
+    def scan(self, source, *options, suffix='.clx'):
         with tempfile.TemporaryDirectory(prefix='clarifix-') as directory:
             path = Path(directory) / ('input' + suffix)
             path.write_bytes(source.encode('utf-8') if isinstance(source, str) else source)
@@ -175,7 +175,7 @@ class LexerTests(unittest.TestCase):
     def test_symbol_table_and_token_files(self):
         with tempfile.TemporaryDirectory(prefix='clarifix-') as directory:
             path = Path(directory)
-            source, tokens, symbols = [path / n for n in ['input.clf','tokens.txt','symbols.txt']]
+            source, tokens, symbols = [path / n for n in ['input.clx','tokens.txt','symbols.txt']]
             source.write_text('set x to 1. show x.', encoding='utf-8')
             args = [str(EXE), '--tokens', str(tokens), '--symbols', str(symbols), str(source)]
             p = subprocess.run(args, capture_output=True, timeout=10)
@@ -201,18 +201,20 @@ class LexerTests(unittest.TestCase):
             self.assertEqual(p.returncode, 2)  # Existing outputs are protected.
 
     def test_cli_and_io_failures(self):
-        for args, expected in [([],2), (['--help'],0), (['--unknown'],2), (['--tokens'],2), (['missing.clf'],2)]:
+        for args, expected in [([],2), (['--help'],0), (['--unknown'],2), (['--tokens'],2), (['missing.clx'],2)]:
             with self.subTest(args=args):
                 p = subprocess.run([str(EXE), *args], capture_output=True, timeout=10)
                 self.assertEqual(p.returncode, expected)
-        status, _, diagnostic = self.scan('show 1.', suffix='.txt')
-        self.assertEqual(status, 1)
-        self.assertIn('E100', diagnostic)
+        for suffix in ('.txt', '.clf', '.CLX'):
+            with self.subTest(suffix=suffix):
+                status, _, diagnostic = self.scan('show 1.', suffix=suffix)
+                self.assertEqual(status, 1)
+                self.assertIn('E100', diagnostic)
 
     def test_provided_examples(self):
         for name, options, status in [('average',[],0), ('features',[],0), ('braces',['--braces'],0), ('errors',[],1), ('checklist',[],0)]:
             with self.subTest(name=name):
-                p = subprocess.run([str(EXE), *options, str(ROOT/'examples'/f'{name}.clf')], capture_output=True, timeout=10)
+                p = subprocess.run([str(EXE), *options, str(ROOT/'examples'/f'{name}.clx')], capture_output=True, timeout=10)
                 self.assertEqual(p.returncode, status, p.stderr)
 
     def test_fixed_word_boundaries_and_identifier_identity(self):
@@ -231,7 +233,7 @@ class LexerTests(unittest.TestCase):
         self.assertEqual(len(set(ids.values())), len(ids))
 
     def test_report_golden_and_parser_tokens_unchanged(self):
-        source = ROOT / 'tests/fixtures/report.clf'
+        source = ROOT / 'tests/fixtures/report.clx'
         baseline = subprocess.run([str(EXE), str(source)], capture_output=True, timeout=10)
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / 'report.txt'
@@ -244,7 +246,7 @@ class LexerTests(unittest.TestCase):
     def test_report_literals_comments_and_escaping(self):
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)
-            source, report = directory / 'input.clf', directory / 'report.txt'
+            source, report = directory / 'input.clx', directory / 'report.txt'
             source.write_bytes(b'/* first\nsecond\t\\\xff */\nshow 1. show 2.5. show \'A\'. show "hi\\n". show true.\n# end')
             result = subprocess.run([str(EXE), '--table', str(report), str(source)], capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
@@ -259,7 +261,7 @@ class LexerTests(unittest.TestCase):
     def test_report_empty_partial_and_io_protection(self):
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)
-            source = directory / 'input.clf'
+            source = directory / 'input.clx'
             source.write_text('', encoding='utf-8')
             report = directory / 'empty.txt'
             result = subprocess.run([str(EXE), '--table', str(report), str(source)], capture_output=True, timeout=10)
@@ -297,7 +299,7 @@ class LexerTests(unittest.TestCase):
     def test_checklist_report_coverage(self):
         with tempfile.TemporaryDirectory() as directory:
             report = Path(directory) / 'report.txt'
-            result = subprocess.run([str(EXE), '--table', str(report), str(ROOT / 'examples/checklist.clf')], capture_output=True, timeout=10)
+            result = subprocess.run([str(EXE), '--table', str(report), str(ROOT / 'examples/checklist.clx')], capture_output=True, timeout=10)
             self.assertEqual(result.returncode, 0, result.stderr)
             with report.open(encoding='utf-8', newline='') as stream:
                 rows = list(csv.DictReader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
@@ -414,7 +416,7 @@ class LexerTests(unittest.TestCase):
         self.assertIn('Invalid: 5', report)
 
     def test_paper_extensions_and_both_layout_modes(self):
-        for extension in ('.clx','.clf'):
+        for extension in ('.clx',):
             status, report, _, _, diagnostic = self.exports('if true:\n    show 1.', extension)
             self.assertEqual(status, 0, diagnostic)
             self.assertIn('sample'+extension, report)

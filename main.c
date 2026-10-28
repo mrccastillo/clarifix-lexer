@@ -14,7 +14,7 @@ static void usage(FILE *out)
           "--symbols FILE Write unique identifiers/constants and attributes as TSV.\n"
           "--report FILE  Write the paper's four-section Symbol Table report.\n"
           "--table FILE   Write a two-column token-type/lexeme TSV.\n"
-          "Source types: .clx (canonical), .clf (compatibility alias).\n"
+          "Source type: .clx\n"
           "Exit codes: 0 = lexical success, 1 = lexical errors, 2 = usage/I/O error.\n",
           out);
 }
@@ -93,10 +93,10 @@ int main(int argc, char **argv)
     }
     if (!input) { usage(stderr); return 2; }
     const char *extension = strrchr(input, '.');
-    if (!extension || (strcmp(extension, ".clx") != 0 && strcmp(extension, ".clf") != 0)) {
+    if (!extension || strcmp(extension, ".clx") != 0) {
         fputs("Error E100 (Lexical Error)\n"
-              "What happened: The source filename does not end in .clx or .clf.\n"
-              "Why: ClariFix uses .clx; .clf remains a compatibility alias.\n"
+              "What happened: The source filename does not end in .clx.\n"
+              "Why: ClariFix source files use the .clx extension.\n"
               "How to fix: Save your source with the .clx extension.\n", stderr);
         return 1;
     }

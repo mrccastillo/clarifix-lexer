@@ -1,6 +1,6 @@
 # ClariFix Lexical Analyzer
 
-ClariFix reads your code, identifies tokens, and reports lexical errors. Use `.clx` files for new programs; existing `.clf` examples also work.
+ClariFix reads your code, identifies tokens, and reports lexical errors. Save your programs with the `.clx` extension.
 
 This is a lexical analyzer. Running a file shows its tokens and errors; executing the program is a later phase.
 
@@ -27,7 +27,7 @@ Tokens and diagnostics appear directly in the terminal. Look for `0 error(s)` in
 ### 3. Try another example
 
 ```powershell
-.\build\clarifix.exe examples\average.clf
+.\build\clarifix.exe examples\average.clx
 ```
 
 Build once, then run as many source files as you want. Rebuild when you change the C source files; editing a `.clx` file only requires saving it and running the analyzer again.
@@ -58,16 +58,16 @@ Use straight quotes and end simple statements with a period. Default blocks use 
 | File in `examples/` | Purpose |
 | --- | --- |
 | `sample.clx` | Short sample from the paper. |
-| `average.clf` | Class-average program. |
-| `features.clf` | Literals, operators, and noise words. |
-| `checklist.clf` | Required token categories. |
-| `errors.clf` | Five intentional lexical errors. |
-| `braces.clf` | Explicit blocks; run with `--braces`. |
+| `average.clx` | Class-average program. |
+| `features.clx` | Literals, operators, and noise words. |
+| `checklist.clx` | Required token categories. |
+| `errors.clx` | Five intentional lexical errors. |
+| `braces.clx` | Explicit blocks; run with `--braces`. |
 
 For the braces example:
 
 ```powershell
-.\build\clarifix.exe --braces examples\braces.clf
+.\build\clarifix.exe --braces examples\braces.clx
 ```
 
 ## Optional: save a Symbol Table report
@@ -89,7 +89,7 @@ Python 3 is required for tests:
 .\build.ps1 -Test
 ```
 
-All 38 tests should pass. The `errors.clf` example is expected to report five errors.
+All 38 tests should pass. The `errors.clx` example is expected to report five errors.
 
 For more command options:
 
