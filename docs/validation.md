@@ -57,3 +57,9 @@ Final deliverable: `build/release/clarifix-lexer-compliance-1.zip`, with an adja
 ## Remaining course actions
 
 GitHub publication does not establish a calendar deadline, course hand-in destination, receipt, or physical preparation. Those remain unchecked in `submission/CHECKLIST.md`. The lexer recognizes source; it does not execute ClariFix programs. Linux/macOS instructions are supplied but were not executed in this Windows environment.
+
+## Follow-up: compiler discovery in an existing VS Code terminal
+
+After the initial release, the build script was updated to append saved Windows PATH entries when its requested compiler is missing from the terminal's inherited environment. Existing terminal-specific paths are preserved. This fixes WinLibs discovery without requiring a VS Code restart before building.
+
+Verified in a PowerShell process where `Get-Command gcc` initially returned no result: `.\build.ps1 -Test` found the installed WinLibs GCC, compiled successfully, and passed all 29 tests. `gcc --version` also worked afterward in that process. This follow-up is on `main`; the original `lexer-compliance-1` release remains its original verified snapshot.

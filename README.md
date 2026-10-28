@@ -26,6 +26,8 @@ If GCC is not on PATH, pass its location:
 .\build.ps1 -Compiler C:\msys64\ucrt64\bin\gcc.exe -Test
 ```
 
+If your VS Code terminal was open before GCC was installed, `build.ps1` refreshes missing compiler paths from the saved Windows PATH automatically. Run `.\build.ps1 -Test` again. Restart VS Code to refresh PATH for commands you run directly, such as `gcc --version`.
+
 Or compile directly:
 
 ```powershell
