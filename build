@@ -1,0 +1,54 @@
+#!/bin/sh
+set -eu
+
+usage() {
+    printf 'Usage: ./build [--test]\nBuild ClariFix; optionally run the Python 3 tests.\n'
+}
+
+if [ "$#" -gt 1 ]; then
+    usage >&2
+    exit 2
+fi
+run_tests=0
+case "${1:-}" in
+    '') ;;
+    --test) run_tests=1 ;;
+    --help|-h) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
+esac
+
+project_dir=$(CDPATH= cd -P "$(dirname "$0")" && pwd)
+cd "$project_dir"
+
+compiler=${CC:-}
+if [ -z "$compiler" ]; then
+    for candidate in cc clang gcc; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            compiler=$candidate
+            break
+        fi
+    done
+fi
+if [ -z "$compiler" ] || ! command -v "$compiler" >/dev/null 2>&1; then
+    printf 'A C11 compiler is required. Install Clang/GCC or set CC to its executable.\n' >&2
+    exit 1
+fi
+
+case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*) executable=bin/clarifix.exe; default_python=python ;;
+    *) executable=bin/clarifix; default_python=python3 ;;
+esac
+
+mkdir -p bin
+printf 'Compiler: %s\n' "$compiler"
+"$compiler" -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 main.c lexer.c -o "$executable"
+printf 'Built %s\n' "$executable"
+
+if [ "$run_tests" -eq 1 ]; then
+    python_command=${PYTHON:-$default_python}
+    if ! command -v "$python_command" >/dev/null 2>&1; then
+        printf 'Python 3 is required for --test. Install it or set PYTHON to its executable.\n' >&2
+        exit 1
+    fi
+    "$python_command" tests/test_lexer.py "$executable"
+fi

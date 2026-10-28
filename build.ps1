@@ -37,17 +37,17 @@ try {
         throw 'A desktop C compiler is required. Put GCC on PATH or use .\build.ps1 -Compiler C:\path\to\gcc.exe (or clang.exe).'
     }
     Write-Host "Compiler: $($compilerCommand.Source)"
-    New-Item -ItemType Directory -Path build -Force | Out-Null
-    & $compilerCommand.Source -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 main.c lexer.c -o build/clarifix.exe
+    New-Item -ItemType Directory -Path bin -Force | Out-Null
+    & $compilerCommand.Source -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 main.c lexer.c -o bin/clarifix.exe
     if ($LASTEXITCODE -ne 0) { throw 'C compilation failed.' }
-    Write-Host 'Built build\clarifix.exe'
+    Write-Host 'Built bin\clarifix.exe'
     if ($Test) {
-        python tests/test_lexer.py build/clarifix.exe
+        python tests/test_lexer.py bin/clarifix.exe
         if ($LASTEXITCODE -ne 0) { throw 'Lexer tests failed.' }
     }
     if ($Examples) {
         if (-not $OutputDirectory) { throw '-Examples requires a fresh -OutputDirectory.' }
-        python tools/generate_samples.py --executable build/clarifix.exe --output $OutputDirectory
+        python tools/generate_samples.py --executable bin/clarifix.exe --output $OutputDirectory
         if ($LASTEXITCODE -ne 0) { throw 'Example report generation failed.' }
     }
 } finally {

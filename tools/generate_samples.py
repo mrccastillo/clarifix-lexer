@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -12,7 +13,7 @@ EXAMPLES = ('sample', 'average', 'features', 'braces', 'errors', 'checklist')
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--executable', type=Path, default=ROOT / 'build/clarifix.exe')
+    parser.add_argument('--executable', type=Path, default=ROOT / ('bin/clarifix.exe' if os.name == 'nt' else 'bin/clarifix'))
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     destination = args.output.resolve()

@@ -1,4 +1,4 @@
-/build/
+/bin/
 __pycache__/
 *.exe
 *.obj

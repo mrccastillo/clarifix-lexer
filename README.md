@@ -6,31 +6,35 @@ This is a lexical analyzer. Running a file shows its tokens and errors; executin
 
 ## Basic running
 
-Open the **PPL folder** in VS Code, then select **Terminal > New Terminal**. Use PowerShell for the commands below.
+Open the **PPL folder** in VS Code, then select **Terminal > New Terminal**. GCC or Clang must be installed.
 
 ### 1. Build the analyzer
 
-```powershell
-.\build.ps1
-```
+| System | Command |
+| --- | --- |
+| Windows (PowerShell) | `.\build.ps1` |
+| Mac / Linux | `./build` |
 
-Wait for `Built build\clarifix.exe`. GCC or Clang must be installed.
+Wait for the `Built` message. The executable is created in `bin/`.
 
 ### 2. Run an example
 
-```powershell
-.\build\clarifix.exe examples\sample.clx
-```
+| System | Command |
+| --- | --- |
+| Windows | `.\bin\clarifix.exe examples\sample.clx` |
+| Mac / Linux | `./bin/clarifix examples/sample.clx` |
 
 Tokens and diagnostics appear directly in the terminal. Look for `0 error(s)` in the summary for a successful analysis.
 
 ### 3. Try another example
 
 ```powershell
-.\build\clarifix.exe examples\average.clx
+.\bin\clarifix.exe examples\average.clx
 ```
 
-Build once, then run as many source files as you want. Rebuild when you change the C source files; editing a `.clx` file only requires saving it and running the analyzer again.
+On Mac/Linux, use `./bin/clarifix examples/average.clx`.
+
+Build once, then run as many source files as you want. Rebuild when you change the C source files; editing a `.clx` file only requires saving it and running the analyzer again. The commands below use Windows PowerShell; on Mac/Linux use `./bin/clarifix` and forward slashes in paths.
 
 ## Create your own example
 
@@ -48,7 +52,7 @@ show age.
 Run it:
 
 ```powershell
-.\build\clarifix.exe examples\my-program.clx
+.\bin\clarifix.exe examples\my-program.clx
 ```
 
 Use straight quotes and end simple statements with a period. Default blocks use four-space indentation.
@@ -67,7 +71,7 @@ Use straight quotes and end simple statements with a period. Default blocks use 
 For the braces example:
 
 ```powershell
-.\build\clarifix.exe --braces examples\braces.clx
+.\bin\clarifix.exe --braces examples\braces.clx
 ```
 
 ## Optional: save a Symbol Table report
@@ -75,8 +79,8 @@ For the braces example:
 Run these commands in order. The first creates the report; the second displays it:
 
 ```powershell
-.\build\clarifix.exe --report build\sample-report.txt examples\sample.clx
-Get-Content build\sample-report.txt
+.\bin\clarifix.exe --report bin\sample-report.txt examples\sample.clx
+Get-Content bin\sample-report.txt
 ```
 
 The report contains the token list, unique symbols, invalid tokens, and category summary. Use a **new report filename each time** because existing files are protected against overwriting. Reports after lexical errors are partial.
@@ -89,10 +93,18 @@ Python 3 is required for tests:
 .\build.ps1 -Test
 ```
 
+On Mac/Linux:
+
+```sh
+./build --test
+```
+
+The shell script automatically finds `cc`, `clang`, or `gcc`. To choose a compiler, use `CC=clang ./build`. Python 3 is only needed when running tests or generating reports.
+
 All 38 tests should pass. The `errors.clx` example is expected to report five errors.
 
 For more command options:
 
 ```powershell
-.\build\clarifix.exe --help
+.\bin\clarifix.exe --help
 ```

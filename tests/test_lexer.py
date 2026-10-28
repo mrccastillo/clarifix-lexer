@@ -1,9 +1,10 @@
 """Black-box tests of the compiled C lexer; Python's standard library only.
 
-Usage: python tests/test_lexer.py build/clarifix.exe
+Usage: python tests/test_lexer.py bin/clarifix.exe
 """
 import csv
 import io
+import os
 from pathlib import Path
 import random
 import re
@@ -12,8 +13,8 @@ import sys
 import tempfile
 import unittest
 
-EXE = Path(sys.argv.pop(1)).resolve() if len(sys.argv) > 1 else Path('build/clarifix.exe').resolve()
 ROOT = Path(__file__).resolve().parents[1]
+EXE = Path(sys.argv.pop(1)).resolve() if len(sys.argv) > 1 else (ROOT / ('bin/clarifix.exe' if os.name == 'nt' else 'bin/clarifix')).resolve()
 
 
 class LexerTests(unittest.TestCase):
