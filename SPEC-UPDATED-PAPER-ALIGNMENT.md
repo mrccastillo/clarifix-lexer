@@ -1,6 +1,6 @@
 # Updated-paper alignment specification
 
-Source of truth: `Group 4 - PPL Draft Proposal (1).pdf`, especially pages 18–20 and the embedded page-20 sample. This specification supersedes conflicting storage and reporting requirements in `SPEC-LEXER-COMPLIANCE.md`. The original PDF is preserved unchanged.
+Source of truth: `docs/ClariFix-Updated-Paper.pdf`, especially pages 18–20 and the embedded page-20 sample. It is the unchanged paper originally supplied as `Group 4 - PPL Draft Proposal (1).pdf`. This specification supersedes the earlier compliance spec, retained in Git history and the historical release.
 
 ## Required behavior
 

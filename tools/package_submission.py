@@ -10,7 +10,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ZIP_NAME = 'clarifix-paper-alignment-2.zip'
-ROOT_FILES = ['README.md', 'SPEC-LEXER-COMPLIANCE.md', 'SPEC-UPDATED-PAPER-ALIGNMENT.md', '.gitignore', 'Makefile',
+ROOT_FILES = ['README.md', 'SPEC-UPDATED-PAPER-ALIGNMENT.md', '.gitignore', 'Makefile',
               'build.ps1', 'main.c', 'lexer.c', 'lexer.h']
 DIRECTORIES = ['docs', 'examples', 'tests', 'tools', 'submission']
 

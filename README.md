@@ -87,7 +87,7 @@ Numeric values use exact normalized base-10 text, avoiding machine overflow or r
 - Allowed `to` remains NOISE in the source report and becomes ASSIGN in parser tokens. Allowed `the`, `of`, and `then` remain report rows but are omitted from parser tokens. Misplaced noise receives E105.
 - Use ASCII `--` for decrement. `int` is an ordinary identifier; the optional declaration example is not implemented grammar. Use `set score = 90.`.
 
-The updated PDF still contradicts itself on layout, quote typography, and decrement, so these decisions are recorded in [the alignment addendum](docs/updated-paper-decisions.md). The PDF is preserved unchanged. The older compliance spec and `lexer-compliance-1` release describe the earlier output design and are historical.
+The updated PDF still contradicts itself on layout, quote typography, and decrement, so these decisions are recorded in [the alignment addendum](docs/updated-paper-decisions.md). The authoritative PDF is kept unchanged in `docs`. Superseded drafts and the earlier compliance spec are available in Git history and the historical `lexer-compliance-1` release.
 
 ## Recognition and diagnostics
 

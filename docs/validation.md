@@ -47,9 +47,11 @@ The addendum is four A4 pages. Every page was rasterized and inspected; tables/c
 
 ZIP: `clarifix-paper-alignment-2.zip`. Target tag: `paper-alignment-2` in the existing private repository, https://github.com/mrccastillo/clarifix-lexer.
 
-The package includes the authoritative updated paper, addendum, specifications, source, examples, tests, report samples, and this evidence. It excludes local tool installations, temporary logs, binaries, caches, and the superseded original draft PDFs. Original user files remain in the workspace.
+The package includes the authoritative updated paper, addendum, current specification, source, examples, tests, report samples, and this evidence. It excludes local tool installations, temporary logs, binaries, caches, and superseded draft PDFs. The updated paper is retained unchanged in `docs`; redundant root copies and obsolete drafts have been removed from the current tree and remain in Git history.
 
-Clean-extraction verification passed for all 62 payload files: every manifest hash was checked, the documented PowerShell script rebuilt the analyzer and passed all 38 tests, all six examples returned their expected statuses, and regenerated reports matched packaged samples byte-for-byte. No prebuilt executable was used.
+The published `paper-alignment-2` snapshot passed clean-extraction verification for all 62 payload files: every manifest hash was checked, the documented PowerShell script rebuilt the analyzer and passed all 38 tests, all six examples returned their expected statuses, and regenerated reports matched packaged samples byte-for-byte. No prebuilt executable was used. Workspace cleanup removes the superseded specification from newly generated packages, leaving 61 payload files; the published historical archive is unchanged.
+
+The cleaned 61-file package also passed the same clean-extraction, 38-test, six-example, and report-comparison checks. Its temporary verification archive was removed after the check; the published release ZIP is retained locally.
 
 ```powershell
 python tools\package_submission.py --output build\paper-release
