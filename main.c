@@ -9,6 +9,7 @@ static void usage(FILE *out)
           "Usage: clarifix [--braces] [--report FILE] [--table FILE] [--tokens FILE] [--symbols FILE] SOURCE.clx\n"
           "       clarifix --help\n\n"
           "Default: four-space indentation and a token table on stdout.\n"
+          "Each analysis replaces Symbol Table.txt in the current directory.\n"
           "--braces       Use { } blocks; ignore indentation and newlines.\n"
           "--tokens FILE  Write token TSV to FILE instead of stdout.\n"
           "--symbols FILE Write unique identifiers/constants and attributes as TSV.\n"
@@ -60,10 +61,11 @@ static char *read_source(const char *path, size_t *length)
 static int write_output(const char *path, int symbols, const char *source,
                         const char *source_name, const CfResult *r)
 {
-    /* C11 exclusive creation protects source files and previous results. */
-    FILE *out = path ? fopen(path, "wx") : stdout;
+    /* Only the automatic table is replaced; explicit exports remain exclusive. */
+    FILE *out = path ? fopen(path, symbols == 4 ? "w" : "wx") : stdout;
     if (!out) { perror(path); return 2; }
-    int status = symbols == 3 ? cf_write_table(out, source, r) :
+    int status = symbols == 4 ? cf_write_token_table(out, source, r) :
+                 symbols == 3 ? cf_write_table(out, source, r) :
                  symbols == 2 ? cf_write_report(out, source, source_name, r) :
                  symbols == 1 ? cf_write_symbols(out, r) :
                  path ? cf_write_tokens(out, source, r) : cf_write_token_table(out, source, r);
@@ -108,6 +110,7 @@ int main(int argc, char **argv)
     int status = cf_lex(source, length, braces, stderr, &result);
     const char *source_name = input;
     for (const char *p = input; *p; p++) if (*p == '/' || *p == '\\') source_name = p + 1;
+    if (write_output("Symbol Table.txt", 4, source, source_name, &result)) status = 2;
     if (write_output(tokens, 0, source, source_name, &result)) status = 2;
     if (symbols && write_output(symbols, 1, source, source_name, &result)) status = 2;
     if (report && write_output(report, 2, source, source_name, &result)) status = 2;

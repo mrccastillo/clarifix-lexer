@@ -35,7 +35,9 @@ Build once. Rebuild only after changing the C source files.
 
 The terminal table shows only `TOKEN TYPE` and `LEXEME`, including source comments and noise words. Any errors and the analysis summary also appear in the terminal. Look for `0 error(s)`.
 
-To save the two-column output as a text file, run `lex sample --table bin/token-table.txt`. Use a fresh filename for each export. The optional `--tokens FILE` export retains detailed positions and symbol IDs.
+Every analysis automatically creates or replaces `Symbol Table.txt` in the terminal's current folder. It contains the same bordered table as the terminal, with aligned `TOKEN TYPE` and `LEXEME` columns. For invalid source code, it contains the recognized lexemes from the partial analysis; read the terminal diagnostics for the errors.
+
+To save an additional copy, run `lex sample --table bin/token-table.txt`. Use a fresh filename for each explicit export. The optional `--tokens FILE` export retains detailed positions and symbol IDs.
 
 Use `lex programname`, replacing `programname` with your file's name without `.clx`. For example, `lex average` analyzes `examples/average.clx`.
 
@@ -60,7 +62,7 @@ Run it with `lex my-program`. After editing a `.clx` file, save and run it again
 lex sample --report bin/report.txt
 ```
 
-Open `bin/report.txt` in VS Code to see the tokens, symbol table, errors, and summary. Use a new filename or delete the old report before running the same command again. Reports are created only when requested.
+Open `bin/report.txt` in VS Code to see the tokens, symbol table, errors, and summary. Use a new filename or delete the old report before running the same command again. This detailed report is optional; `Symbol Table.txt` is generated automatically.
 
 ## Run tests (optional)
 

@@ -445,6 +445,38 @@ class LexerTests(unittest.TestCase):
                 reports.append(report.read_bytes())
             self.assertEqual(*reports)
 
+    def test_automatic_symbol_table_is_replaced_for_each_analysis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / 'input.clx'
+            output = Path(directory) / 'Symbol Table.txt'
+            for text, expected_status in [('# sample\nset total to 10.', 0),
+                                          ('show @.\nshow 42.', 1), ('', 0)]:
+                source.write_text(text, encoding='utf-8')
+                extra = Path(directory) / 'extra.tsv'
+                if extra.exists():
+                    extra.unlink()
+                result = subprocess.run([str(EXE), '--table', str(extra), str(source)],
+                                        cwd=directory, capture_output=True, timeout=10)
+                self.assertEqual(result.returncode, expected_status, result.stderr)
+                self.assertEqual(output.read_bytes(), result.stdout)
+                lines = output.read_text(encoding='utf-8').splitlines()
+                self.assertTrue(lines[0].startswith('+---'))
+                self.assertIn('TOKEN TYPE', lines[1])
+                self.assertIn('LEXEME', lines[1])
+                self.assertEqual(lines[0], lines[-1])
+            self.assertIn('(none)', output.read_text(encoding='utf-8'))
+            self.assertNotIn('total', output.read_text(encoding='utf-8'))
+
+    def test_automatic_symbol_table_write_failure_returns_io_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / 'input.clx'
+            source.write_text('show 1.', encoding='utf-8')
+            (Path(directory) / 'Symbol Table.txt').mkdir()
+            result = subprocess.run([str(EXE), str(source)], cwd=directory,
+                                    capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn(b'Symbol Table.txt', result.stderr)
+
     def test_terminal_table_matches_source_lexeme_export(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / 'sample.clx'
