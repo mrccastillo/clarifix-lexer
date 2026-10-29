@@ -38,7 +38,7 @@ try {
     }
     Write-Host "Compiler: $($compilerCommand.Source)"
     New-Item -ItemType Directory -Path bin -Force | Out-Null
-    & $compilerCommand.Source -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 main.c lexer.c -o bin/clarifix.exe
+    & $compilerCommand.Source -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 src/main.c src/lexer.c src/dfa.c src/symbols.c src/diagnostics.c src/output.c -o bin/clarifix.exe
     if ($LASTEXITCODE -ne 0) { throw 'C compilation failed.' }
     Write-Host 'Built bin\clarifix.exe'
     if ($Test) {

@@ -41,7 +41,7 @@ esac
 
 mkdir -p bin
 printf 'Compiler: %s\n' "$compiler"
-"$compiler" -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 main.c lexer.c -o "$executable"
+"$compiler" -std=c11 -Wall -Wextra -Wpedantic -Werror -O2 src/main.c src/lexer.c src/dfa.c src/symbols.c src/diagnostics.c src/output.c -o "$executable"
 printf 'Built %s\n' "$executable"
 
 if [ "$run_tests" -eq 1 ]; then

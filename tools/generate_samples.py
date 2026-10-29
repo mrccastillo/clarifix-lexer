@@ -31,15 +31,12 @@ def main():
         if name == 'braces':
             command.append('--braces')
         command.append(str(ROOT / f'examples/{name}.clx'))
-        result = subprocess.run(command, capture_output=True, timeout=10)
+        result = subprocess.run(command, cwd=destination, capture_output=True, timeout=10)
         (destination / f'{name}-diagnostics.txt').write_bytes(result.stderr)
         expected = 1 if name == 'errors' else 0
         if result.returncode != expected or result.stdout:
             raise RuntimeError(f'{name}: unexpected exit {result.returncode} or stdout: {result.stderr!r}')
         diagnostic = result.stderr.decode('utf-8')
-        match = re.search(r'Lexical analysis: (\d+) token\(s\), (\d+) symbol\(s\), (\d+) error\(s\)', diagnostic)
-        if not match:
-            raise ValueError(f'{name}: missing summary')
         text = report.read_text(encoding='utf-8')
         if not all('[' + letter + ']' in text for letter in 'ABCD'):
             raise ValueError(f'{name}: missing report section')
@@ -47,7 +44,12 @@ def main():
             rows = list(csv.reader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
         if rows[0] != ['TOKEN TYPE', 'LEXEME'] or not all(len(row) == 2 for row in rows):
             raise ValueError(f'{name}: invalid report format')
-        token_count, symbol_count, errors = map(int, match.groups())
+        # Counts come from the saved records; normal terminal output has no summary.
+        with tokens.open(encoding='utf-8', newline='') as stream:
+            token_count = sum(1 for _ in csv.DictReader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
+        with symbols.open(encoding='utf-8', newline='') as stream:
+            symbol_count = sum(1 for _ in csv.DictReader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
+        errors = len(re.findall(r'^Error E\d+', diagnostic, re.MULTILINE))
         if errors != (5 if name == 'errors' else 0):
             raise ValueError(f'{name}: unexpected error count')
         summaries.append(dict(source=f'examples/{name}.clx', braces=name == 'braces',

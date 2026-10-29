@@ -469,6 +469,102 @@ class LexerTests(unittest.TestCase):
             self.assertIn('(none)', output.read_text(encoding='utf-8'))
             self.assertNotIn('total', output.read_text(encoding='utf-8'))
 
+    def test_trace_keyword_and_identifier_boundaries(self):
+        source = 'if ifx IF i'
+        baseline_status, baseline, baseline_diagnostic = self.scan(source)
+        status, rows, diagnostic = self.scan(source, '--trace')
+        self.assertEqual(status, baseline_status)
+        self.assertEqual(rows, baseline)
+        self.assertEqual(baseline_diagnostic, '')
+        self.assertIn("TRACE 1:1 WORD START -- 'i' --> I", diagnostic)
+        self.assertIn("TRACE 1:2 WORD I -- 'f' --> IF", diagnostic)
+        self.assertIn('TRACE 1:3 WORD IF -- SPACE --> BOUNDARY (not consumed)', diagnostic)
+        self.assertIn('TRACE 1:1 ACCEPT IF length=2', diagnostic)
+        self.assertIn("WORD IF -- 'x' --> IDENT", diagnostic)
+        self.assertEqual([r['TOKEN'] for r in rows[:4]], ['IF', 'IDENT', 'IDENT', 'IDENT'])
+
+    def test_trace_numbers_operators_quotes_comments_and_symbols(self):
+        source = '# note\n/* block */\nset total to 19.99.\nshow "a\\n".\nshow total >= 2.'
+        status, baseline, _ = self.scan(source)
+        traced_status, traced, diagnostic = self.scan(source, '--trace')
+        self.assertEqual(status, 0)
+        self.assertEqual(traced_status, status)
+        self.assertEqual(traced, baseline)
+        for fragment in ('LINE_COMMENT START', 'BLOCK_COMMENT SLASH', 'NUMBER INTEGER',
+                         "INTEGER -- '.' --> DOT", 'NUMBER DOT', 'QUOTE ESCAPE',
+                         "OPERATOR GT -- '=' --> GE",
+                         'SYMBOL INSERT id=1 name=total', 'SYMBOL REUSE id=1 name=total'):
+            self.assertIn(fragment, diagnostic)
+
+    def test_trace_preserves_invalid_recovery_and_noise_validation(self):
+        source = 'show then.\nshow @.\nshow "bad\\q".\nshow 42.'
+        status, baseline, _ = self.scan(source)
+        traced_status, traced, diagnostic = self.scan(source, '--trace')
+        self.assertEqual(status, 1)
+        self.assertEqual(traced_status, status)
+        self.assertEqual(traced, baseline)
+        for code in (105, 103, 111):
+            self.assertIn(f'REJECT E{code}', diagnostic)
+        self.assertIn('RECOVER skip rest of line', diagnostic)
+        self.assertIn('ACCEPT INT length=2', diagnostic)
+
+    def test_trace_keeps_automatic_table_equal_to_terminal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = subprocess.run([str(EXE), '--trace', str(ROOT / 'examples/trace.clx')],
+                                    cwd=directory, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual((Path(directory) / 'Symbol Table.txt').read_bytes(), result.stdout)
+            self.assertNotIn(b'TRACE', result.stdout)
+            self.assertIn(b'LAYOUT EMIT INDENT', result.stderr)
+            self.assertIn(b'LAYOUT EMIT DEDENT', result.stderr)
+
+    def test_fixed_source_limit_and_exact_boundary(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / 'input.clx'
+            maximum = 262144
+            source.write_bytes(b' ' * maximum)
+            command = [str(EXE), str(source)]
+            result = subprocess.run(command, cwd=directory, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            source.write_bytes(b' ' * (maximum + 1))
+            result = subprocess.run(command, cwd=directory, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn(b'Capacity limit: source bytes', result.stderr)
+
+    def test_fixed_symbol_token_and_bracket_limits(self):
+        cases = [(' '.join(f'item{i}' for i in range(8193)), 'symbols'),
+                 ('.' * 32768, 'parser tokens'),
+                 ('#\n' * 32769, 'source tokens'),
+                 ('\n'.join(' ' * (4 * i) + 'if true:' for i in range(257)), 'indentation levels'),
+                 ('(' * 257, 'nested brackets')]
+        for source, name in cases:
+            with self.subTest(limit=name):
+                status, _, diagnostic = self.scan(source)
+                self.assertEqual(status, 2, diagnostic)
+                self.assertIn(f'Capacity limit: {name}', diagnostic)
+
+    def test_fixed_text_storage_handles_a_source_sized_string(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / 'input.clx'
+            source.write_text('"' + 'a' * (262144 - 2) + '"', encoding='utf-8')
+            result = subprocess.run([str(EXE), str(source)], cwd=directory,
+                                    capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(b'CONST_STRING', result.stdout)
+
+    def test_example_report_generator(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'reports'
+            result = subprocess.run([sys.executable, str(ROOT / 'tools/generate_samples.py'),
+                                     '--executable', str(EXE), '--output', str(output)],
+                                    capture_output=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(b'errors: exit 1', result.stdout)
+            self.assertTrue((output / 'summary.json').is_file())
+            self.assertTrue((output / 'Symbol Table.txt').is_file())
+            self.assertEqual((output / 'sample-symbol-table.txt').read_text(encoding='utf-8'),
+                             (ROOT / 'tests/fixtures/paper-sample.expected.txt').read_text(encoding='utf-8'))
+
     def test_automatic_symbol_table_write_failure_returns_io_error(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / 'input.clx'

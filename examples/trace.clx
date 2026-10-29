@@ -1,0 +1,4 @@
+set score to 90.
+if score >= 75 then:
+    show "Passed".
+show score.
