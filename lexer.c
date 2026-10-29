@@ -772,17 +772,15 @@ static void print_table(FILE *out, const char **headers, char **cells, size_t ro
 }
 int cf_write_token_table(FILE *out, const char *source, const CfResult *r)
 {
-    const char *headers[] = {"LINE", "COLUMN", "TOKEN", "LEXEME", "SYMBOL_ID"};
-    char **cells = cells_new(r->token_count, 5);
-    for (size_t i = 0; i < r->token_count; i++) {
-        const CfToken *t = &r->tokens[i];
-        size_t j = i * 5;
-        cells[j] = size_text(t->line); cells[j + 1] = size_text(t->column);
-        cells[j + 2] = copy_text(cf_token_name(t->type), strlen(cf_token_name(t->type)));
-        cells[j + 3] = escaped_text(source + t->offset, t->length);
-        cells[j + 4] = size_text(t->symbol);
+    const char *headers[] = {"TOKEN TYPE", "LEXEME"};
+    char **cells = cells_new(r->report_count, 2);
+    for (size_t i = 0; i < r->report_count; i++) {
+        const CfToken *t = &r->report[i];
+        size_t j = i * 2;
+        cells[j] = copy_text(public_name(t->type), strlen(public_name(t->type)));
+        cells[j + 1] = escaped_text(source + t->offset, t->length);
     }
-    print_table(out, headers, cells, r->token_count, 5, 1);
+    print_table(out, headers, cells, r->report_count, 2, 1);
     return ferror(out) ? 2 : 0;
 }
 int cf_write_report(FILE *out, const char *source, const char *source_name, const CfResult *r)

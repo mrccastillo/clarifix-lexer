@@ -445,10 +445,10 @@ class LexerTests(unittest.TestCase):
                 reports.append(report.read_bytes())
             self.assertEqual(*reports)
 
-    def test_terminal_table_preserves_tokens_and_tsv_export(self):
+    def test_terminal_table_matches_source_lexeme_export(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / 'sample.clx'
-            source.write_text('set long_identifier_1234567890 to 20.\nshow long_identifier_1234567890 || true.\nshow "hi\\n".', encoding='utf-8')
+            source.write_text('# sample\nset long_identifier_1234567890 to 20.\nshow long_identifier_1234567890 || true.\nshow "hi\\n".', encoding='utf-8')
             shown = subprocess.run([str(EXE), str(source)], capture_output=True, timeout=10)
             self.assertEqual(shown.returncode, 0, shown.stderr)
             lines = shown.stdout.decode('utf-8').splitlines()
@@ -459,15 +459,21 @@ class LexerTests(unittest.TestCase):
             boundaries = [i for i, c in enumerate(lines[0]) if c == '+']
             def columns(line):
                 return [line[left+1:right].strip() for left, right in zip(boundaries, boundaries[1:])]
-            self.assertEqual(columns(lines[1]), ['LINE','COLUMN','TOKEN','LEXEME','SYMBOL_ID'])
+            self.assertEqual(columns(lines[1]), ['TOKEN TYPE','LEXEME'])
             self.assertTrue(all(line[i] == '|' for line in lines[3:-1] for i in boundaries))
             tokens = Path(directory) / 'tokens.tsv'
-            exported = subprocess.run([str(EXE), '--tokens', str(tokens), str(source)], capture_output=True, timeout=10)
+            detailed = Path(directory) / 'detailed.tsv'
+            exported = subprocess.run([str(EXE), '--tokens', str(detailed), '--table', str(tokens), str(source)], capture_output=True, timeout=10)
             self.assertEqual(exported.returncode, 0, exported.stderr)
             self.assertEqual(exported.stdout, b'')
             with tokens.open(encoding='utf-8', newline='') as stream:
                 rows = list(csv.reader(stream, delimiter='\t', quoting=csv.QUOTE_NONE))
             self.assertEqual([columns(line) for line in lines[3:-1]], rows[1:])
+            self.assertIn(['SINGLE_COMMENT', '# sample'], rows[1:])
+            self.assertIn(['NOISE', 'to'], rows[1:])
+            self.assertFalse(any(row[0] in {'NEWLINE', 'INDENT', 'DEDENT', 'EOF'} for row in rows[1:]))
+            self.assertEqual(detailed.read_text(encoding='utf-8').splitlines()[0],
+                             'LINE\tCOLUMN\tTOKEN\tLEXEME\tSYMBOL_ID')
 
     def test_paper_invalid_fragments_and_no_invalid_constants(self):
         cases = [(b'show "\xff".', 'E103', r'\xFF'), ('show "bad\\q".', 'E111', r'\\q'),
