@@ -33,7 +33,7 @@ lex sample
 
 Build once. Rebuild only after changing the C source files.
 
-The terminal table shows only `TOKEN TYPE` and `LEXEME`, including source comments and noise words. Any errors and the analysis summary also appear in the terminal. Look for `0 error(s)`.
+The terminal table shows only `TOKEN TYPE` and `LEXEME`, including source comments and noise words. Individual error messages appear when lexical errors are found.
 
 Every analysis automatically creates or replaces `Symbol Table.txt` in the terminal's current folder. It contains the same bordered table as the terminal, with aligned `TOKEN TYPE` and `LEXEME` columns. For invalid source code, it contains the recognized lexemes from the partial analysis; read the terminal diagnostics for the errors.
 

@@ -115,9 +115,6 @@ int main(int argc, char **argv)
     if (symbols && write_output(symbols, 1, source, source_name, &result)) status = 2;
     if (report && write_output(report, 2, source, source_name, &result)) status = 2;
     if (table && write_output(table, 3, source, source_name, &result)) status = 2;
-    fprintf(stderr, "Lexical analysis: %zu token(s), %zu symbol(s), %zu error(s).%s\n",
-            result.token_count, result.symbol_count, result.errors,
-            result.errors ? " Token output is partial; do not execute it. Report output is partial." : "");
     cf_free(&result);
     free(source);
     return status;
