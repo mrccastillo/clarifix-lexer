@@ -1,5 +1,6 @@
-/* Lexer functions, result structures, storage limits, and file I/O definitions. */
+/* Lexer and parser definitions, result structures, storage limits, and file I/O. */
 #include "lexer.h"
+#include "parser.h"
 
 /* String helpers used to compare options and find the filename extension. */
 #include <string.h>
@@ -7,11 +8,12 @@
 /* Print help to the terminal's normal output or error output, as requested. */
 static void usage(FILE *out)
 {
-    fputs("ClariFix lexical analyzer\n"
-          "Usage: clarifix [--trace] [--braces] [--report FILE] [--table FILE] [--tokens FILE] [--symbols FILE] SOURCE.clx\n"
+    fputs("ClariFix lexical and syntax analyzer\n"
+          "Usage: clarifix [--parse] [--trace] [--braces] [--report FILE] [--table FILE] [--tokens FILE] [--symbols FILE] SOURCE.clx\n"
           "       clarifix --help\n\n"
           "Default: four-space indentation and a token table on stdout.\n"
           "Each analysis replaces Symbol Table.txt in the current directory.\n"
+          "--parse        Parse the token stream and print the syntax tree on stdout.\n"
           "--trace        Show character-by-character states on stderr.\n"
           "--braces       Use { } blocks; ignore indentation and newlines.\n"
           "--tokens FILE  Write token TSV to FILE instead of stdout.\n"
@@ -19,7 +21,7 @@ static void usage(FILE *out)
           "--report FILE  Write the paper's four-section Symbol Table report.\n"
           "--table FILE   Write a two-column token-type/lexeme TSV.\n"
           "Source type: .clx\n"
-          "Exit codes: 0 = lexical success, 1 = lexical errors, 2 = usage/I/O error.\n",
+          "Exit codes: 0 = success, 1 = lexical/syntax errors, 2 = usage/I/O error.\n",
           out);
 }
 
@@ -106,15 +108,16 @@ static int write_output(const char *path, OutputKind kind, const char *source,
 /* Program entry point: argc counts command arguments; argv holds their text. */
 int main(int argc, char **argv)
 {
-    /* No filenames are selected yet, and brace mode and tracing start disabled. */
+    /* No filenames are selected yet, and parse, brace mode, and tracing start disabled. */
     const char *input = NULL, *tokens = NULL, *symbols = NULL, *report = NULL, *table = NULL;
-    int braces = 0, trace = 0;
+    int braces = 0, trace = 0, parse_mode = 0;
     /* Start at 1 because argv[0] is the program name. strcmp returns 0 for a match. */
     for (int i = 1; i < argc; i++) {
-        /* Help exits immediately; the next two options simply enable a setting. */
+        /* Help exits immediately; the next options simply enable a setting. */
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) { usage(stdout); return 0; }
         if (strcmp(argv[i], "--braces") == 0) braces = 1;
         else if (strcmp(argv[i], "--trace") == 0) trace = 1;
+        else if (strcmp(argv[i], "--parse") == 0) parse_mode = 1;
         else if (strcmp(argv[i], "--tokens") == 0 || strcmp(argv[i], "--symbols") == 0 ||
                  strcmp(argv[i], "--report") == 0 || strcmp(argv[i], "--table") == 0) {
             /* Remember the option before advancing to its required output filename. */
@@ -152,13 +155,28 @@ int main(int argc, char **argv)
     /* Point to the filename after the last slash, supporting Windows and Unix paths. */
     const char *source_name = input;
     for (const char *p = input; *p; p++) if (*p == '/' || *p == '\\') source_name = p + 1;
-    /* Always write the automatic table and tokens, even if lexical errors were found. */
+    /* Always write the automatic table; write tokens to file or stdout (unless --parse owns stdout). */
     if (write_output("Symbol Table.txt", OUTPUT_AUTOMATIC_TABLE, source, source_name, &result)) status = 2;
-    if (write_output(tokens, OUTPUT_TOKENS, source, source_name, &result)) status = 2;
+    if (!parse_mode || tokens) {
+        if (write_output(tokens, OUTPUT_TOKENS, source, source_name, &result)) status = 2;
+    }
     /* Write optional exports only when their filenames were supplied. */
     if (symbols && write_output(symbols, OUTPUT_SYMBOLS, source, source_name, &result)) status = 2;
     if (report && write_output(report, OUTPUT_REPORT, source, source_name, &result)) status = 2;
     if (table && write_output(table, OUTPUT_TSV_TABLE, source, source_name, &result)) status = 2;
-    /* Exit with 0 for success, 1 for lexical errors, or 2 for usage/I/O errors. */
+    /* In --parse mode, run syntax analysis when lexing and I/O succeeded. */
+    if (parse_mode && status == 0) {
+        static CfParseResult parse_result;
+        CfParserInput parser_in;
+        parser_input_init(&parser_in, &result, source, length);
+        status = cf_parse(&parser_in, stderr, &parse_result);
+        if (status == 0) {
+            if (cf_write_ast(stdout, &parser_in, &parse_result) || fflush(stdout) != 0) {
+                fprintf(stderr, "Could not write stdout.\n");
+                status = 2;
+            }
+        }
+    }
+    /* Exit with 0 for success, 1 for lexical/syntax errors, or 2 for usage/I/O errors. */
     return status;
 }
